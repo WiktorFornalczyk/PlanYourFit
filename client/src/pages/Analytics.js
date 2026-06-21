@@ -1,0 +1,12 @@
+import React from 'react';
+import Icon from '../components/Icon';
+import { durationMinutes, SPORTS } from '../data';
+
+export default function Analytics({ activities }) {
+  const now = new Date();
+  const monthItems = activities.filter((a) => { const d = new Date(`${a.activityDate}T12:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+  const minutes = monthItems.reduce((sum, a) => sum + durationMinutes(a), 0);
+  const distance = monthItems.filter((a)=>a.activityType==='running').reduce((sum,a)=>sum+Number(a.details?.actualDistanceKm||a.details?.targetDistanceKm||0),0);
+  const maxCount = Math.max(1, ...Object.keys(SPORTS).map((type)=>monthItems.filter((a)=>a.activityType===type).length));
+  return <div className="analytics-page"><header className="page-intro"><div><span className="eyebrow">PODSUMOWANIE MIESIĄCA</span><h1>Twój ruch w liczbach</h1><p>Małe kroki układają się w całkiem dobrą historię.</p></div></header><div className="analytics-grid"><section className="card analytics-hero"><div><span className="eyebrow">{new Intl.DateTimeFormat('pl-PL',{month:'long'}).format(now).toUpperCase()}</span><h2>{monthItems.length} aktywności</h2><p>Łącznie {Math.floor(minutes/60)} h {minutes%60} min świadomego ruchu.</p></div><div className="progress-ring" style={{'--progress':`${Math.min(100,monthItems.length/12*100)}%`}}><span><b>{Math.min(100,Math.round(monthItems.length/12*100))}%</b><small>celu</small></span></div></section><section className="card sport-breakdown"><div className="section-heading"><div><span className="eyebrow">AKTYWNOŚCI</span><h2>Ulubione dyscypliny</h2></div></div>{Object.entries(SPORTS).map(([type,sport])=>{const count=monthItems.filter((a)=>a.activityType===type).length;return <div className="sport-bar" key={type}><span className={`sport-icon ${sport.color}`}><Icon name={sport.icon}/></span><div><p><b>{sport.label}</b><small>{count} treningi</small></p><i><em className={sport.color} style={{width:`${count/maxCount*100}%`}}/></i></div></div>})}</section><section className="card milestone-card"><span className="milestone-icon"><Icon name="route" size={30}/></span><div><span className="eyebrow">DYSTANS BIEGOWY</span><h2>{distance.toFixed(1)} km</h2><p>To mniej więcej {Math.round(distance/42.195*100)}% maratonu.</p></div></section><section className="card insight-card"><Icon name="spark"/><div><span className="eyebrow">WSKAZÓWKA</span><h3>Regularność wygrywa z intensywnością.</h3><p>Zaplanuj kolejną aktywność już dziś, nawet krótką.</p></div></section></div></div>;
+}
