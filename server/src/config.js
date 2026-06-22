@@ -15,4 +15,5 @@ module.exports = {
   },
   googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY || '',
   openRouteServiceKey: process.env.OPENROUTESERVICE_API_KEY || '',
+  nominatimUserAgent: process.env.NOMINATIM_USER_AGENT || `PlanYourFit/1.0 (${process.env.CLIENT_URL || 'http://localhost:3000'})`,
 };

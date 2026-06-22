@@ -70,6 +70,8 @@ h1, h2, h3, .brand { font-family: 'Manrope', sans-serif; }
 [data-theme="dark"] .insight-card p { color: #49615b; }
 .settings-anchor { scroll-margin-top: 105px; }
 .location-fields { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:10px; align-items:end; }
+.osm-attribution { display:inline-block; margin-top:7px; color:var(--muted); font-size:8px; text-decoration:underline; }
+.settings-location-button { margin-top:9px; }
 .trend.down { color:#d06760; }
 .trend.same { color:var(--muted); }
 .primary-button:hover { transform: translateY(-1px); background: var(--green-dark); }

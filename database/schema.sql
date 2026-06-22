@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   default_location VARCHAR(255) NULL,
   default_postal_code VARCHAR(6) NULL,
+  default_location_lat DECIMAL(10,7) NULL,
+  default_location_lng DECIMAL(10,7) NULL,
   preferred_radius_km TINYINT UNSIGNED NOT NULL DEFAULT 10,
   theme ENUM('light', 'dark', 'system') NOT NULL DEFAULT 'system',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

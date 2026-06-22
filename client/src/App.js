@@ -49,5 +49,5 @@ export default function App() {
     {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={(date)=>setModal({date})} onSelect={setSelected} search={search} sportFilter={sportFilter}/>} 
     {page==='analytics'&&<Analytics activities={visibleActivities}/>} 
     {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser}/>} 
-  </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
+  </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} user={user} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
 }

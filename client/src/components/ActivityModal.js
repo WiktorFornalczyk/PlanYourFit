@@ -3,20 +3,21 @@ import Icon from './Icon';
 import { api } from '../api';
 import { demoPlaces, demoWeather, SPORTS } from '../data';
 
-const emptyForm = (date) => ({
+const emptyForm = (date, user = {}) => ({
   activityType: 'running', title: 'Poranny bieg', activityDate: date || new Date().toISOString().slice(0, 10),
-  startTime: '07:30', endTime: '08:15', locationAddress: '', postalCode: '', locationLat: null, locationLng: null,
-  note: '', searchRadiusKm: 10, repeatWeekly: false, repeatCount: 4,
+  startTime: '07:30', endTime: '08:15', locationAddress: user.defaultLocation || '', postalCode: user.defaultPostalCode || '',
+  locationLat: user.defaultLocationLat ?? null, locationLng: user.defaultLocationLng ?? null,
+  note: '', searchRadiusKm: user.preferredRadiusKm || 10, repeatWeekly: false, repeatCount: 4,
   details: { targetDistanceKm: 5, paceMinPerKm: 6, courtType: 'outdoor', selectedPlaceId: null },
 });
 
 const titles = { running: 'Poranny bieg', basketball: 'Koszykówka', swimming: 'Trening pływacki' };
 
-export default function ActivityModal({ initialDate, activity, demo, existingActivities, onClose, onSaved, notify }) {
+export default function ActivityModal({ initialDate, activity, user, demo, existingActivities, onClose, onSaved, notify }) {
   const [form, setForm] = useState(() => activity ? {
-    ...emptyForm(activity.activityDate), ...activity, repeatWeekly: false, repeatCount: 4,
+    ...emptyForm(activity.activityDate, user), ...activity, repeatWeekly: false, repeatCount: 4,
     details: { ...emptyForm().details, ...activity.details },
-  } : emptyForm(initialDate));
+  } : emptyForm(initialDate, user));
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [geoBusy, setGeoBusy] = useState(false);
@@ -29,7 +30,11 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
     window.addEventListener('keydown', handleEscape); return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const set = (name, value) => setForm((current) => ({ ...current, [name]: value }));
+  const set = (name, value) => setForm((current) => ({
+    ...current,
+    [name]: value,
+    ...(['locationAddress', 'postalCode'].includes(name) ? { locationLat: null, locationLng: null } : {}),
+  }));
   const setDetail = (name, value) => setForm((current) => ({ ...current, details: { ...current.details, [name]: value } }));
 
   const overlap = useMemo(() => existingActivities.find((item) => item.id !== activity?.id && item.activityDate === form.activityDate && item.startTime < form.endTime && item.endTime > form.startTime), [existingActivities, activity, form.activityDate, form.startTime, form.endTime]);
@@ -43,17 +48,33 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
     if (!navigator.geolocation) return notify('Twoja przeglądarka nie obsługuje geolokalizacji.', 'error');
     setGeoBusy(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setForm((current) => ({ ...current, locationLat: coords.latitude, locationLng: coords.longitude, locationAddress: 'Moja bieżąca lokalizacja' })); setGeoBusy(false); notify('Lokalizacja została pobrana.', 'success'); },
-      () => { setGeoBusy(false); notify('Nie udało się pobrać lokalizacji. Wpisz adres ręcznie.', 'error'); },
+      async ({ coords }) => {
+        try {
+          const result = await api.reverseGeocode({ lat: coords.latitude, lng: coords.longitude });
+          setForm((current) => ({ ...current, locationLat: coords.latitude, locationLng: coords.longitude, locationAddress: result.location.address, postalCode: result.location.postalCode || current.postalCode }));
+          notify('Lokalizacja i adres zostały pobrane.', 'success');
+        } catch (error) { notify(error.message, 'error'); }
+        finally { setGeoBusy(false); }
+      },
+      () => { setGeoBusy(false); notify('Nie udało się pobrać lokalizacji. Sprawdź zgodę przeglądarki.', 'error'); },
       { timeout: 8000, maximumAge: 300000 }
     );
+  };
+
+  const resolveLocation = async () => {
+    if (form.locationLat != null && form.locationLng != null) return form;
+    const result = await api.geocode({ address: form.locationAddress, postalCode: form.postalCode });
+    const resolved = { ...form, locationLat: result.location.lat, locationLng: result.location.lng };
+    setForm(resolved);
+    return resolved;
   };
 
   const findPlaces = async () => {
     const type = form.activityType === 'swimming' ? 'pool' : 'hall';
     setPlacesBusy(true); setShowPlaces(true);
     try {
-      const result = demo || !form.locationLat ? { places: demoPlaces[type] } : await api.places({ type, lat: form.locationLat, lng: form.locationLng, radiusKm: form.searchRadiusKm });
+      const location = await resolveLocation();
+      const result = demo ? { places: demoPlaces[type] } : await api.places({ type, lat: location.locationLat, lng: location.locationLng, radiusKm: location.searchRadiusKm });
       setPlaces(result.places);
     } catch (error) { notify(error.message, 'error'); setPlaces(demoPlaces[type]); }
     finally { setPlacesBusy(false); }
@@ -75,16 +96,17 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
     event.preventDefault(); if (!validate()) return;
     setBusy(true);
     try {
-      let payload = { ...form, searchRadiusKm: Number(form.searchRadiusKm), repeatCount: Number(form.repeatCount), details: { ...form.details, targetDistanceKm: Number(form.details.targetDistanceKm || 0), paceMinPerKm: Number(form.details.paceMinPerKm || 0) } };
-      if (form.activityType === 'running' && form.locationLat && !demo) {
-        const route = await api.route({ lat: form.locationLat, lng: form.locationLng, targetDistanceKm: payload.details.targetDistanceKm, paceMinPerKm: payload.details.paceMinPerKm });
+      const location = await resolveLocation();
+      let payload = { ...location, searchRadiusKm: Number(location.searchRadiusKm), repeatCount: Number(location.repeatCount), details: { ...location.details, targetDistanceKm: Number(location.details.targetDistanceKm || 0), paceMinPerKm: Number(location.details.paceMinPerKm || 0) } };
+      if (location.activityType === 'running' && !demo) {
+        const route = await api.route({ lat: location.locationLat, lng: location.locationLng, targetDistanceKm: payload.details.targetDistanceKm, paceMinPerKm: payload.details.paceMinPerKm });
         payload.details = { ...payload.details, actualDistanceKm: route.actualDistanceKm, estimatedDurationMinutes: route.estimatedDurationMinutes, routeGeojson: route.route };
       }
-      const weather = demo ? demoWeather : form.locationLat ? (await api.weather({ lat: form.locationLat, lng: form.locationLng, date: form.activityDate, from: form.startTime, to: form.endTime })).weather : null;
+      const weather = demo ? demoWeather : (await api.weather({ lat: location.locationLat, lng: location.locationLng, date: location.activityDate, from: location.startTime, to: location.endTime })).weather;
       if (weather) {
         const recommendation = demo
           ? { status: 'good', message: 'Dobra pora na aktywność — warunki są korzystne.' }
-          : (await api.recommendation({ activityType: form.activityType, courtType: form.details.courtType, selectedPlace: form.details.selectedPlaceId, weather })).recommendation;
+          : (await api.recommendation({ activityType: location.activityType, courtType: location.details.courtType, selectedPlace: location.details.selectedPlaceId, weather })).recommendation;
         payload.details = { ...payload.details, weather, recommendation };
       }
       if (!demo) {
@@ -118,10 +140,10 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
 
           <div className="location-block">
             <div className="location-heading"><div><span className="section-label">Lokalizacja</span><p>Podaj adres lub użyj swojej pozycji</p></div><button type="button" className="text-button" onClick={useLocation} disabled={geoBusy}><Icon name="target"/>{geoBusy ? 'Pobieram…' : 'Użyj mojej lokalizacji'}</button></div>
-            <div className="location-fields"><div><label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}</div><label className="field"><span>Kod pocztowy</span><input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="00-000" inputMode="numeric" maxLength="6" pattern="\d{2}-\d{3}"/>{errors.postalCode && <small className="field-error">{errors.postalCode}</small>}</label></div>
+            <div className="location-fields"><div><label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}</div><label className="field"><span>Kod pocztowy</span><input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="00-000" inputMode="numeric" maxLength="6" pattern="\d{2}-\d{3}"/>{errors.postalCode && <small className="field-error">{errors.postalCode}</small>}</label></div><a className="osm-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Adresy: © OpenStreetMap contributors</a>
             <div className="range-row"><label>Promień wyszukiwania <b>{form.searchRadiusKm} km</b></label><input type="range" min="1" max="50" value={form.searchRadiusKm} onChange={(e) => set('searchRadiusKm', e.target.value)}/></div>
             {((form.activityType === 'swimming') || (form.activityType === 'basketball' && form.details.courtType === 'indoor')) && <button type="button" className="secondary-button full" onClick={findPlaces}><Icon name="search"/> Znajdź {form.activityType === 'swimming' ? 'baseny' : 'hale'} w pobliżu</button>}
-            {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam najlepszych miejsc…</div> : places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => { setDetail('selectedPlaceId', place.id); set('locationAddress', place.address); }}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address} · {place.distanceKm} km</small></span><em>{place.rating} ★</em></button>)}</div>}
+            {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam najlepszych miejsc…</div> : places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => setForm((current) => ({ ...current, locationAddress: place.address, locationLat: place.lat != null ? Number(place.lat) : current.locationLat, locationLng: place.lng != null ? Number(place.lng) : current.locationLng, details: { ...current.details, selectedPlaceId: place.id } }))}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address} · {place.distanceKm} km</small></span><em>{place.rating} ★</em></button>)}</div>}
           </div>
 
           <label className="field"><span>Notatka <em>opcjonalnie</em></span><textarea rows="3" value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="Co chcesz zapamiętać?"/></label>

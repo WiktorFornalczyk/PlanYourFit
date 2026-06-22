@@ -52,6 +52,8 @@ const profileSchema = z.object({
   email,
   defaultLocation: z.string().trim().max(255).optional().default(''),
   defaultPostalCode: z.string().trim().refine((value) => !value || /^\d{2}-\d{3}$/.test(value), 'Podaj kod pocztowy w formacie 00-000.').optional().default(''),
+  defaultLocationLat: z.coerce.number().min(-90).max(90).nullable().optional(),
+  defaultLocationLng: z.coerce.number().min(-180).max(180).nullable().optional(),
   preferredRadiusKm: z.coerce.number().min(1).max(50).default(10),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
 }).refine((data) => !data.defaultLocation || data.defaultPostalCode, {

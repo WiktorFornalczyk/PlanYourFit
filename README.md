@@ -63,13 +63,14 @@ Konto z danych startowych: `demo@planyourfit.pl`, hasło: `Demo1234!`.
 
 ## Integracje
 
-Open-Meteo nie wymaga klucza. Bez kluczy Google Places i OpenRouteService backend zwraca bezpieczne dane demonstracyjne, więc cały przepływ interfejsu pozostaje testowalny.
+Open-Meteo i geokodowanie Nominatim nie wymagają klucza. Lokalizacja urządzenia pochodzi z Browser Geolocation API, a Nominatim zamienia adresy na współrzędne i współrzędne na adresy. Bez kluczy Google Places i OpenRouteService backend zwraca bezpieczne dane demonstracyjne, więc cały przepływ interfejsu pozostaje testowalny.
 
 Aby włączyć prawdziwe usługi, ustaw w `.env`:
 
 ```env
 GOOGLE_PLACES_API_KEY=...
 OPENROUTESERVICE_API_KEY=...
+NOMINATIM_USER_AGENT=PlanYourFit/1.0 (contact: your-email@example.com)
 ```
 
 Klucze nigdy nie trafiają do frontendu. Zapytania przechodzą przez REST API, a pogoda i miejsca są cache'owane w MySQL.
@@ -82,6 +83,7 @@ Klucze nigdy nie trafiają do frontendu. Zapytania przechodzą przez REST API, a
 | Aktywności | `GET/POST /api/activities`, `GET/PUT/DELETE /api/activities/:id` |
 | Pogoda | `GET /api/weather` |
 | Miejsca | `GET /api/places` |
+| Geokodowanie | `GET /api/geocoding/search`, `GET /api/geocoding/reverse` |
 | Trasy | `POST /api/routes/running` |
 | Rekomendacje | `POST /api/recommendations/evaluate` |
 | Statystyki | `GET /api/stats/week`, `GET /api/stats/month` |

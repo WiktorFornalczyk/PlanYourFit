@@ -3,6 +3,8 @@ const requireAuth = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const integrations = require('../controllers/integrationController');
 
+router.get('/geocoding/reverse', asyncHandler(integrations.reverseLocation));
+router.get('/geocoding/search', asyncHandler(integrations.searchLocation));
 router.use(requireAuth);
 router.get('/weather', asyncHandler(integrations.weather));
 router.get('/places', asyncHandler(integrations.places));

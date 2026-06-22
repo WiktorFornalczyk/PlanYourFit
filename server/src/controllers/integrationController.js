@@ -2,6 +2,23 @@ const { getWeather } = require('../services/weatherService');
 const { searchPlaces } = require('../services/placesService');
 const { createRunningRoute } = require('../services/routeService');
 const { evaluateRecommendation } = require('../services/recommendationEngine');
+const { reverseGeocode, geocode } = require('../services/geocodingService');
+
+async function reverseLocation(req, res) {
+  const lat = Number(req.query.lat); const lng = Number(req.query.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return res.status(400).json({ message: 'Podaj poprawne współrzędne.' });
+  }
+  res.json({ location: await reverseGeocode({ lat, lng }) });
+}
+
+async function searchLocation(req, res) {
+  const address = String(req.query.address || '').trim(); const postalCode = String(req.query.postalCode || '').trim();
+  if (address.length < 2 || !/^\d{2}-\d{3}$/.test(postalCode)) {
+    return res.status(400).json({ message: 'Podaj adres i kod pocztowy w formacie 00-000.' });
+  }
+  res.json({ location: await geocode({ address, postalCode }) });
+}
 
 async function weather(req, res) {
   const { lat, lng, date, from, to } = req.query;
@@ -27,4 +44,4 @@ async function runningRoute(req, res) {
 
 function recommendation(req, res) { res.json({ recommendation: evaluateRecommendation(req.body) }); }
 
-module.exports = { weather, places, runningRoute, recommendation };
+module.exports = { reverseLocation, searchLocation, weather, places, runningRoute, recommendation };

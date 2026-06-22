@@ -25,6 +25,8 @@ export const api = {
   createActivity: (body, allowOverlap = false) => request(`/activities?allowOverlap=${allowOverlap}`, { method: 'POST', body: JSON.stringify(body) }),
   updateActivity: (id, body, allowOverlap = false) => request(`/activities/${id}?allowOverlap=${allowOverlap}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteActivity: (id) => request(`/activities/${id}`, { method: 'DELETE' }),
+  reverseGeocode: (params) => request(`/geocoding/reverse?${new URLSearchParams(params)}`),
+  geocode: (params) => request(`/geocoding/search?${new URLSearchParams(params)}`),
   weather: (params) => request(`/weather?${new URLSearchParams(params)}`),
   places: (params) => request(`/places?${new URLSearchParams(params)}`),
   route: (body) => request('/routes/running', { method: 'POST', body: JSON.stringify(body) }),
