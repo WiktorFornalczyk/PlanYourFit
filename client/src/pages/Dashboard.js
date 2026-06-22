@@ -27,7 +27,7 @@ export default function Dashboard({ user, activities, onAdd, onSelect, search, s
   const today = useMemo(() => new Date(`${calendarContext.currentDate}T${calendarContext.currentTime || '12:00'}:00`), [calendarContext.currentDate, calendarContext.currentTime]);
   const [date, setDate] = useState(today); const [view, setView] = useState('month');
   useEffect(() => setDate(new Date(`${calendarContext.currentDate}T12:00:00`)), [calendarContext.currentDate]);
-  const filtered = useMemo(() => activities.filter((a) => (!sportFilter || a.activityType === sportFilter) && (!search || `${a.title} ${a.postalCode || ''} ${a.locationAddress} ${a.note}`.toLowerCase().includes(search.toLowerCase()))), [activities, search, sportFilter]);
+  const filtered = useMemo(() => activities.filter((a) => (!sportFilter || a.activityType === sportFilter) && (!search || a.title.toLocaleLowerCase('pl-PL').includes(search.toLocaleLowerCase('pl-PL')))), [activities, search, sportFilter]);
   const now = today;
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);

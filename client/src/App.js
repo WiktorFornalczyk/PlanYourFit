@@ -4,8 +4,9 @@ import ActivityDetails from './components/ActivityDetails';
 import ActivityModal from './components/ActivityModal';
 import Icon from './components/Icon';
 import NotificationBell from './components/NotificationBell';
+import SearchAutocomplete from './components/SearchAutocomplete';
 import Toast from './components/Toast';
-import { demoActivities, demoUser, SPORTS } from './data';
+import { demoActivities, demoUser } from './data';
 import Analytics from './pages/Analytics';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -20,11 +21,11 @@ function dateTimeForZone(timeZone) {
 
 const localDateTime = () => dateTimeForZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd, notifications, onNotificationSelect, onActivityStatus }) {
+function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd, notifications, onNotificationSelect, onActivityStatus, activities, onSearchSelect }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const nav = [['dashboard','home','Pulpit'],['calendar','calendar','Kalendarz'],['analytics','chart','Statystyki'],['settings','settings','Ustawienia']];
   const sidebarNav = nav.filter(([key]) => key !== 'calendar');
-  return <div className="app-shell"><aside className={`sidebar ${mobileMenu?'open':''}`}><div className="sidebar-top"><a className="brand" href="#dashboard" onClick={()=>setPage('dashboard')}><span className="brand-mark"><Icon name="spark"/></span><b>PlanYour<span>Fit</span></b></a><button className="icon-button sidebar-close" onClick={()=>setMobileMenu(false)}><Icon name="close"/></button></div><nav>{sidebarNav.map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>{setPage(key);setMobileMenu(false)}}><Icon name={icon}/><span>{label}</span></button>)}</nav><div className="sidebar-promo"><span><Icon name="spark"/></span><b>Dobry plan to pół sukcesu.</b><p>Reszta to pierwszy krok.</p></div><button className="logout-button" onClick={onLogout}><Icon name="logout"/> Wyloguj się</button></aside>{mobileMenu&&<div className="sidebar-overlay" onClick={()=>setMobileMenu(false)}/>}<div className="app-main"><header className="topbar"><button className="icon-button menu-button" onClick={()=>setMobileMenu(true)}><Icon name="menu"/></button><div className="topbar-search"><Icon name="search"/><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Szukaj aktywności…"/><select value={sportFilter} onChange={(e)=>setSportFilter(e.target.value)} aria-label="Filtruj sport"><option value="">Wszystkie</option>{Object.entries(SPORTS).map(([key,s])=><option value={key} key={key}>{s.label}</option>)}</select></div><div className="topbar-actions"><button className="icon-button" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title="Zmień motyw"><Icon name={theme==='dark'?'sun':'moon'}/></button><NotificationBell notifications={notifications} onSelect={onNotificationSelect} onActivityStatus={onActivityStatus}/><button className="profile-button" onClick={()=>setPage('settings')}><span>{user.name.slice(0,2).toUpperCase()}</span><div><b>{user.name}</b><small>{user.demo?'Tryb demo':'Moje konto'}</small></div><Icon name="chevronRight" size={15}/></button></div></header><main>{children}</main><nav className="mobile-nav">{nav.slice(0,4).map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>setPage(key)}><Icon name={icon}/><small>{label}</small></button>)}<button className="mobile-add" onClick={()=>onAdd()}><Icon name="plus"/></button></nav></div></div>;
+  return <div className="app-shell"><aside className={`sidebar ${mobileMenu?'open':''}`}><div className="sidebar-top"><a className="brand" href="#dashboard" onClick={()=>setPage('dashboard')}><span className="brand-mark"><Icon name="spark"/></span><b>PlanYour<span>Fit</span></b></a><button className="icon-button sidebar-close" onClick={()=>setMobileMenu(false)}><Icon name="close"/></button></div><nav>{sidebarNav.map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>{setPage(key);setMobileMenu(false)}}><Icon name={icon}/><span>{label}</span></button>)}</nav><div className="sidebar-promo"><span><Icon name="spark"/></span><b>Dobry plan to pół sukcesu.</b><p>Reszta to pierwszy krok.</p></div><button className="logout-button" onClick={onLogout}><Icon name="logout"/> Wyloguj się</button></aside>{mobileMenu&&<div className="sidebar-overlay" onClick={()=>setMobileMenu(false)}/>}<div className="app-main"><header className="topbar"><button className="icon-button menu-button" onClick={()=>setMobileMenu(true)}><Icon name="menu"/></button><SearchAutocomplete value={search} onChange={setSearch} activities={activities} sportFilter={sportFilter} setSportFilter={setSportFilter} onSelect={onSearchSelect}/><div className="topbar-actions"><button className="icon-button" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title="Zmień motyw"><Icon name={theme==='dark'?'sun':'moon'}/></button><NotificationBell notifications={notifications} onSelect={onNotificationSelect} onActivityStatus={onActivityStatus}/><button className="profile-button" onClick={()=>setPage('settings')}><span>{user.name.slice(0,2).toUpperCase()}</span><div><b>{user.name}</b><small>{user.demo?'Tryb demo':'Moje konto'}</small></div><Icon name="chevronRight" size={15}/></button></div></header><main>{children}</main><nav className="mobile-nav">{nav.slice(0,4).map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>setPage(key)}><Icon name={icon}/><small>{label}</small></button>)}<button className="mobile-add" onClick={()=>onAdd()}><Icon name="plus"/></button></nav></div></div>;
 }
 
 export default function App() {
@@ -123,6 +124,7 @@ export default function App() {
     if (notification.type === 'activity') setSelected(notification.activity);
     else setPage('analytics');
   };
+  const selectSearchActivity = (activity) => { setPage('dashboard'); setSelected(activity); };
   const updateActivityStatus = async (activity, status) => {
     try {
       if (!demo) await api.updateActivityStatus(activity.id, status);
@@ -132,7 +134,7 @@ export default function App() {
   };
   if(screen==='landing') return <><Landing onAuth={openAuth} onDemo={enterDemo}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
   if(screen==='auth') return <><Auth mode={authMode} onMode={setAuthMode} onSubmit={handleAuth} onBack={()=>setScreen('landing')} busy={authBusy} error={authError}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
-  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={openActivityModal} notifications={notifications} onNotificationSelect={selectNotification} onActivityStatus={updateActivityStatus}>
+  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter,activities}} onLogout={logout} onAdd={openActivityModal} notifications={notifications} onNotificationSelect={selectNotification} onActivityStatus={updateActivityStatus} onSearchSelect={selectSearchActivity}>
     {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={openActivityModal} onSelect={setSelected} search={search} sportFilter={sportFilter} calendarContext={calendarContext}/>} 
     {page==='analytics'&&<Analytics activities={visibleActivities} user={user} demo={demo} notify={notify} onUserChange={setUser} calendarContext={calendarContext}/>} 
     {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser} notifications={notifications} onNotificationSelect={selectNotification} onActivityStatus={updateActivityStatus}/>} 
