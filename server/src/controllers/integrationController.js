@@ -35,11 +35,11 @@ async function localTime(req, res) {
 }
 
 async function places(req, res) {
-  const { type, lat, lng } = req.query; const radiusKm = Number(req.query.radiusKm || 10);
-  if (!['hall', 'pool'].includes(type) || !lat || !lng || radiusKm < 1 || radiusKm > 50) {
+  const { type } = req.query; const lat = Number(req.query.lat); const lng = Number(req.query.lng); const radiusKm = Number(req.query.radiusKm || 10);
+  if (!['hall', 'pool'].includes(type) || !Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180 || radiusKm < 1 || radiusKm > 50) {
     return res.status(400).json({ message: 'Podaj poprawny typ, lokalizację i promień 1–50 km.' });
   }
-  res.json({ places: await searchPlaces({ type, lat: Number(lat), lng: Number(lng), radiusKm }) });
+  res.json({ places: await searchPlaces({ type, lat, lng, radiusKm }) });
 }
 
 async function runningRoute(req, res) {

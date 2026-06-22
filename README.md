@@ -22,7 +22,7 @@ Pełnoprawna aplikacja do planowania aktywności fizycznej. Łączy kalendarz tr
 - frontend: React 19, JavaScript, czysty CSS,
 - backend: Node.js, Express 5, Zod, JWT, bcrypt, Helmet i rate limiting,
 - baza: MySQL 8,
-- integracje: Open-Meteo, opcjonalnie Google Places i OpenRouteService.
+- integracje bez kluczy: Open-Meteo, Overpass API, Nominatim, OpenStreetMap i OSRM.
 
 ## Struktura
 
@@ -63,12 +63,12 @@ Konto z danych startowych: `demo@planyourfit.pl`, hasło: `Demo1234!`.
 
 ## Integracje
 
-Open-Meteo, geokodowanie Nominatim i piesze trasy OSRM nie wymagają klucza. Lokalizacja urządzenia pochodzi z Browser Geolocation API, Nominatim zamienia adresy na współrzędne i odwrotnie, a OSRM generuje zamknięte pętle biegowe. Bez klucza Google Places backend zwraca bezpieczne dane demonstracyjne dla obiektów sportowych.
+Open-Meteo, Overpass API, geokodowanie Nominatim i piesze trasy OSRM nie wymagają klucza. Lokalizacja urządzenia pochodzi z Browser Geolocation API, Nominatim zamienia adresy na współrzędne i odwrotnie, Overpass wyszukuje do trzech najbliższych hal lub basenów, a OSRM generuje zamknięte pętle biegowe.
 
 Aby włączyć prawdziwe usługi, ustaw w `.env`:
 
 ```env
-GOOGLE_PLACES_API_KEY=...
+OVERPASS_URL=https://overpass-api.de/api/interpreter
 OSRM_FOOT_URL=https://routing.openstreetmap.de/routed-foot
 NOMINATIM_USER_AGENT=PlanYourFit/1.0 (contact: your-email@example.com)
 ```

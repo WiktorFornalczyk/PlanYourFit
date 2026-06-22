@@ -4,7 +4,7 @@ import NumberInput from '../components/NumberInput';
 import { api } from '../api';
 
 export default function Settings({ user, theme, setTheme, demo, notify, onUserChange, notifications, onNotificationSelect, onActivityStatus }) {
-  const [form, setForm] = useState({ name:user.name, email:user.email, defaultLocation:user.defaultLocation || '', defaultPostalCode:user.defaultPostalCode || '', defaultLocationLat:user.defaultLocationLat ?? null, defaultLocationLng:user.defaultLocationLng ?? null, preferredRadiusKm:user.preferredRadiusKm || 10, theme });
+  const [form, setForm] = useState({ name:user.name, email:user.email, defaultLocation:user.defaultLocation || '', defaultPostalCode:user.defaultPostalCode || '', defaultLocationLat:user.defaultLocationLat ?? null, defaultLocationLng:user.defaultLocationLng ?? null, preferredRadiusKm:user.preferredRadiusKm || 25, theme });
   const [password, setPassword] = useState({ currentPassword:'', newPassword:'' });
   const [busy, setBusy] = useState(false);
   const [geoBusy, setGeoBusy] = useState(false);

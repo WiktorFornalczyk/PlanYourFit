@@ -13,7 +13,7 @@ module.exports = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
   },
-  googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY || '',
+  overpassUrl: process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter',
   osrmFootUrl: process.env.OSRM_FOOT_URL || 'https://routing.openstreetmap.de/routed-foot',
   nominatimUserAgent: process.env.NOMINATIM_USER_AGENT || `PlanYourFit/1.0 (${process.env.CLIENT_URL || 'http://localhost:3000'})`,
 };

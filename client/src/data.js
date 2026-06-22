@@ -7,7 +7,7 @@ export const SPORTS = {
   swimming: { label: 'Pływanie', short: 'Basen', icon: 'swim', color: 'blue' },
 };
 
-export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', defaultPostalCode: '00-001', defaultLocationLat: 52.2297, defaultLocationLng: 21.0122, preferredRadiusKm: 10, monthlyActivityGoal: 12, theme: 'light', demo: true };
+export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', defaultPostalCode: '00-001', defaultLocationLat: 52.2297, defaultLocationLng: 21.0122, preferredRadiusKm: 25, monthlyActivityGoal: 12, theme: 'light', demo: true };
 
 export const demoActivities = [
   { id: 'd1', status:'planned', activityType: 'running', title: 'Poranny bieg', activityDate: afterDays(1), startTime: '07:30', endTime: '08:15', locationAddress: 'Park Saski, Warszawa', postalCode: '00-102', note: 'Spokojne tempo, druga strefa', details: { targetDistanceKm: 7, actualDistanceKm: 6.92, paceMinPerKm: 6, estimatedDurationMinutes: 42 } },
@@ -17,17 +17,6 @@ export const demoActivities = [
 ];
 
 export const demoWeather = { available: true, temperature: 18, precipitation: 0, windSpeed: 8, thunderstorm: false, source: 'Open-Meteo' };
-
-export const demoPlaces = {
-  hall: [
-    { id: 'demo-hall-1', name: 'Hala Sportowa Arena', address: 'ul. Sportowa 12', openingHours: '06:00–23:00', distanceKm: 1.2, rating: 4.8 },
-    { id: 'demo-hall-2', name: 'Centrum Aktywności', address: 'al. Zwycięstwa 8', openingHours: '07:00–22:00', distanceKm: 2.9, rating: 4.6 },
-  ],
-  pool: [
-    { id: 'demo-pool-1', name: 'Pływalnia Fala', address: 'ul. Wodna 7', openingHours: '06:00–22:00', distanceKm: 1.7, rating: 4.7 },
-    { id: 'demo-pool-2', name: 'Basen Olimpijski', address: 'ul. Rekreacyjna 21', openingHours: '06:30–21:30', distanceKm: 3.4, rating: 4.5 },
-  ],
-};
 
 export const formatDate = (dateString, options = {}) => new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', ...options }).format(new Date(`${dateString}T12:00:00`));
 export const durationMinutes = (activity) => {

@@ -1,16 +1,8 @@
-const { googlePlacesKey } = require('../config');
-const pool = require('../database/pool');
+const { overpassUrl, nominatimUserAgent } = require('../config');
+const { reverseGeocode } = require('./geocodingService');
 
-const demoPlaces = {
-  hall: [
-    { id: 'demo-hall-1', name: 'Hala Sportowa Arena', address: 'ul. Sportowa 12', phone: '+48 22 410 20 30', website: '', openingHours: '06:00–23:00', rating: 4.8 },
-    { id: 'demo-hall-2', name: 'Centrum Aktywności', address: 'al. Zwycięstwa 8', phone: '+48 22 555 14 90', website: '', openingHours: '07:00–22:00', rating: 4.6 },
-  ],
-  pool: [
-    { id: 'demo-pool-1', name: 'Pływalnia Fala', address: 'ul. Wodna 7', phone: '+48 22 330 44 10', website: '', openingHours: '06:00–22:00', rating: 4.7 },
-    { id: 'demo-pool-2', name: 'Basen Olimpijski', address: 'ul. Rekreacyjna 21', phone: '+48 22 771 02 11', website: '', openingHours: '06:30–21:30', rating: 4.5 },
-  ],
-};
+const cache = new Map();
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 function haversine(lat1, lng1, lat2, lng2) {
   const toRad = (value) => value * Math.PI / 180;
@@ -19,36 +11,94 @@ function haversine(lat1, lng1, lat2, lng2) {
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function searchPlaces({ type, lat, lng, radiusKm }) {
-  try {
-    const [cached] = await pool.execute(
-      `SELECT external_place_id AS id, name, address, phone, website, opening_hours_json AS openingHours,
-       rating, lat, lng FROM places_cache WHERE place_type = ? AND cached_at > NOW() - INTERVAL 24 HOUR
-       AND ST_Distance_Sphere(POINT(lng, lat), POINT(?, ?)) <= ? LIMIT 20`,
-      [type, lng, lat, radiusKm * 1000]
-    );
-    if (cached.length) return cached.map((p) => ({ ...p, distanceKm: haversine(lat, lng, p.lat, p.lng) }));
-  } catch (error) {
-    if (process.env.NODE_ENV === 'production') throw error;
-  }
-
-  if (!googlePlacesKey) {
-    return demoPlaces[type].map((place, index) => ({
-      ...place, lat: Number(lat) + (index + 1) * 0.008, lng: Number(lng) + (index + 1) * 0.006,
-      distanceKm: Number((1.2 + index * 1.7).toFixed(1)), demo: true,
-    }));
-  }
-
-  const keyword = type === 'hall' ? 'sports hall basketball' : 'swimming pool';
-  const params = new URLSearchParams({ location: `${lat},${lng}`, radius: String(radiusKm * 1000), keyword, key: googlePlacesKey });
-  const response = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params}`);
-  if (!response.ok) throw Object.assign(new Error('Nie udało się wyszukać obiektów.'), { status: 502 });
-  const data = await response.json();
-  return (data.results || []).map((place) => ({
-    id: place.place_id, name: place.name, address: place.vicinity, rating: place.rating,
-    lat: place.geometry.location.lat, lng: place.geometry.location.lng,
-    distanceKm: haversine(lat, lng, place.geometry.location.lat, place.geometry.location.lng),
-  }));
+function buildOverpassQuery({ type, lat, lng, radiusKm }) {
+  const around = `around:${Math.round(radiusKm * 1000)},${lat},${lng}`;
+  const selectors = type === 'pool'
+    ? [
+      `nwr(${around})["leisure"="swimming_pool"]`,
+      `nwr(${around})["amenity"="swimming_pool"]`,
+      `nwr(${around})["leisure"="sports_centre"]["sport"~"swimming",i]`,
+    ]
+    : [
+      `nwr(${around})["building"="sports_hall"]`,
+      `nwr(${around})["leisure"="sports_hall"]`,
+      `nwr(${around})["leisure"="sports_centre"]["sport"~"basketball|multi",i]`,
+      `nwr(${around})["sport"="basketball"]["indoor"~"yes|indoor",i]`,
+    ];
+  return `[out:json][timeout:20];(${selectors.map((selector) => `${selector};`).join('')});out body center 100;`;
 }
 
-module.exports = { searchPlaces };
+function formatAddress(tags = {}) {
+  if (tags['addr:full']) return tags['addr:full'];
+  const street = tags['addr:street'] || tags['addr:place'];
+  const line = [street, tags['addr:housenumber']].filter(Boolean).join(' ');
+  const locality = tags['addr:city'] || tags['addr:town'] || tags['addr:village'];
+  return [line, locality].filter(Boolean).join(', ') || tags['contact:address'] || 'Brak pełnego adresu w OpenStreetMap';
+}
+
+function mapElements(elements, { type, lat, lng, radiusKm }) {
+  const places = elements
+    .map((element) => {
+      const placeLat = Number(element.lat ?? element.center?.lat);
+      const placeLng = Number(element.lon ?? element.center?.lon);
+      const tags = element.tags || {};
+      if (!Number.isFinite(placeLat) || !Number.isFinite(placeLng) || tags.access === 'private') return null;
+      const distanceKm = haversine(lat, lng, placeLat, placeLng);
+      if (distanceKm > radiusKm) return null;
+      const fallbackName = type === 'pool' ? 'Basen' : 'Hala sportowa';
+      return {
+        id:`osm-${element.type}-${element.id}`,
+        name:tags.name || tags['name:pl'] || fallbackName,
+        address:formatAddress(tags),
+        postalCode:tags['addr:postcode'] || '',
+        lat:placeLat,
+        lng:placeLng,
+        distanceKm:Number(distanceKm.toFixed(1)),
+        source:'OpenStreetMap',
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distanceKm - b.distanceKm);
+
+  const unique = new Map();
+  places.forEach((place) => {
+    const generic = place.name === 'Basen' || place.name === 'Hala sportowa';
+    const key = generic ? place.id : place.name.toLocaleLowerCase('pl-PL').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!unique.has(key)) unique.set(key, place);
+  });
+  return [...unique.values()].slice(0, 3);
+}
+
+async function searchPlaces({ type, lat, lng, radiusKm }) {
+  const key = `${type}:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}:${radiusKm}`;
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) return cached.places;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const response = await fetch(overpassUrl, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8', 'User-Agent':nominatimUserAgent },
+      body:new URLSearchParams({ data:buildOverpassQuery({ type, lat, lng, radiusKm }) }),
+      signal:controller.signal,
+    });
+    if (!response.ok) throw Object.assign(new Error('Overpass API jest chwilowo niedostępne. Spróbuj ponownie za moment.'), { status:502 });
+    const data = await response.json();
+    const mapped = mapElements(data.elements || [], { type, lat, lng, radiusKm });
+    const places = await Promise.all(mapped.map(async (place) => {
+      if (place.address !== 'Brak pełnego adresu w OpenStreetMap') return place;
+      try {
+        const location = await reverseGeocode({ lat:place.lat, lng:place.lng });
+        return { ...place, address:location.address, postalCode:location.postalCode || place.postalCode };
+      } catch { return place; }
+    }));
+    cache.set(key, { savedAt:Date.now(), places });
+    return places;
+  } catch (error) {
+    if (error.name === 'AbortError') throw Object.assign(new Error('Wyszukiwanie miejsc trwało zbyt długo. Spróbuj ponownie.'), { status:504 });
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
+module.exports = { searchPlaces, buildOverpassQuery, mapElements, haversine };

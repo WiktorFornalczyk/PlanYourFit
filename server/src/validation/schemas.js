@@ -37,7 +37,7 @@ const activitySchema = z.object({
   locationAddress: z.string().trim().min(2, 'Lokalizacja jest wymagana.').max(255),
   postalCode: z.string().trim().regex(/^\d{2}-\d{3}$/, 'Podaj kod pocztowy w formacie 00-000.'),
   note: z.string().max(1000).optional().default(''),
-  searchRadiusKm: z.coerce.number().min(1).max(50).optional().default(10),
+  searchRadiusKm: z.coerce.number().min(1).max(50).optional().default(25),
   repeatWeekly: z.boolean().optional().default(false),
   repeatCount: z.coerce.number().int().min(1).max(12).optional().default(1),
   details: detailsSchema,
@@ -54,7 +54,7 @@ const profileSchema = z.object({
   defaultPostalCode: z.string().trim().refine((value) => !value || /^\d{2}-\d{3}$/.test(value), 'Podaj kod pocztowy w formacie 00-000.').optional().default(''),
   defaultLocationLat: z.coerce.number().min(-90).max(90).nullable().optional(),
   defaultLocationLng: z.coerce.number().min(-180).max(180).nullable().optional(),
-  preferredRadiusKm: z.coerce.number().min(1).max(50).default(10),
+  preferredRadiusKm: z.coerce.number().min(1).max(50).default(25),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
 }).refine((data) => !data.defaultLocation || data.defaultPostalCode, {
   message: 'Podaj kod pocztowy dla domyślnej lokalizacji.', path: ['defaultPostalCode'],

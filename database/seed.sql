@@ -2,7 +2,7 @@ USE planyourfit;
 
 -- Konto demonstracyjne: demo@planyourfit.pl / Demo1234!
 INSERT INTO users (id, name, email, password_hash, default_location, default_postal_code, default_location_lat, default_location_lng, preferred_radius_km, monthly_activity_goal, theme)
-VALUES (1, 'Maja', 'demo@planyourfit.pl', '$2b$12$Qq4pysqdsitv.y8onnNPVeEt0MaQ/6OO04OgDtwX4tF3kqfoupRgC', 'Warszawa', '00-001', 52.2297, 21.0122, 10, 12, 'light')
+VALUES (1, 'Maja', 'demo@planyourfit.pl', '$2b$12$Qq4pysqdsitv.y8onnNPVeEt0MaQ/6OO04OgDtwX4tF3kqfoupRgC', 'Warszawa', '00-001', 52.2297, 21.0122, 25, 12, 'light')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 INSERT INTO activities (id, user_id, activity_type, title, activity_date, start_time, end_time, location_lat, location_lng, location_address, postal_code, note)

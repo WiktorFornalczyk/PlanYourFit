@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Icon from './Icon';
 import NumberInput from './NumberInput';
 import { api } from '../api';
-import { demoPlaces, demoWeather, SPORTS } from '../data';
+import { demoWeather, SPORTS } from '../data';
 
 const emptyForm = (date, user = {}) => ({
   activityType: 'running', title: 'Poranny bieg', activityDate: date || new Date().toISOString().slice(0, 10),
   startTime: '07:30', endTime: '08:15', locationAddress: user.defaultLocation || '', postalCode: user.defaultPostalCode || '',
   locationLat: user.defaultLocationLat ?? null, locationLng: user.defaultLocationLng ?? null,
-  note: '', searchRadiusKm: user.preferredRadiusKm || 10, repeatWeekly: false, repeatCount: 4,
+  note: '', searchRadiusKm: user.preferredRadiusKm || 25, repeatWeekly: false, repeatCount: 4,
   details: { targetDistanceKm: 5, paceMinPerKm: 6, courtType: 'outdoor', selectedPlaceId: null },
 });
 
@@ -105,12 +105,12 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
 
   const findPlaces = async () => {
     const type = form.activityType === 'swimming' ? 'pool' : 'hall';
-    setPlacesBusy(true); setShowPlaces(true);
+    setPlacesBusy(true); setShowPlaces(true); setPlaces([]);
     try {
       const location = await resolveLocation();
-      const result = demo ? { places: demoPlaces[type] } : await api.places({ type, lat: location.locationLat, lng: location.locationLng, radiusKm: location.searchRadiusKm });
+      const result = await api.places({ type, lat: location.locationLat, lng: location.locationLng, radiusKm: location.searchRadiusKm });
       setPlaces(result.places);
-    } catch (error) { notify(error.message, 'error'); setPlaces(demoPlaces[type]); }
+    } catch (error) { notify(error.message, 'error'); setPlaces([]); }
     finally { setPlacesBusy(false); }
   };
 
@@ -175,10 +175,10 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
 
           <div className="location-block">
             <div className="location-heading"><div><span className="section-label">Lokalizacja</span><p>Podaj adres lub użyj swojej pozycji</p></div><button type="button" className="text-button" onClick={useLocation} disabled={geoBusy}><Icon name="target"/>{geoBusy ? 'Pobieram…' : 'Użyj mojej lokalizacji'}</button></div>
-            <div className="location-fields"><div><label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}</div><label className="field"><span>Kod pocztowy</span><input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="00-000" inputMode="numeric" maxLength="6" pattern="\d{2}-\d{3}"/>{errors.postalCode && <small className="field-error">{errors.postalCode}</small>}</label></div><a className="osm-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Adresy: © OpenStreetMap contributors</a>
+            <div className="location-fields"><div><label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}</div><label className="field"><span>Kod pocztowy</span><input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="00-000" inputMode="numeric" maxLength="6" pattern="\d{2}-\d{3}"/>{errors.postalCode && <small className="field-error">{errors.postalCode}</small>}</label></div><a className="osm-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Miejsca i adresy: © OpenStreetMap contributors · Overpass API</a>
             <div className="range-row"><label>Promień wyszukiwania <b>{form.searchRadiusKm} km</b></label><input type="range" min="1" max="50" value={form.searchRadiusKm} onChange={(e) => set('searchRadiusKm', e.target.value)}/></div>
             {((form.activityType === 'swimming') || (form.activityType === 'basketball' && form.details.courtType === 'indoor')) && <button type="button" className="secondary-button full" onClick={findPlaces}><Icon name="search"/> Znajdź {form.activityType === 'swimming' ? 'baseny' : 'hale'} w pobliżu</button>}
-            {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam najlepszych miejsc…</div> : places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => setForm((current) => ({ ...current, locationAddress: place.address, locationLat: place.lat != null ? Number(place.lat) : current.locationLat, locationLng: place.lng != null ? Number(place.lng) : current.locationLng, details: { ...current.details, selectedPlaceId: place.id } }))}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address} · {place.distanceKm} km</small></span><em>{place.rating} ★</em></button>)}</div>}
+            {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam miejsc przez Overpass API…</div> : places.length ? places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => setForm((current) => ({ ...current, locationAddress: place.address, postalCode:place.postalCode || current.postalCode, locationLat: place.lat != null ? Number(place.lat) : current.locationLat, locationLng: place.lng != null ? Number(place.lng) : current.locationLng, details: { ...current.details, selectedPlaceId: place.id } }))}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address}</small></span><strong className="place-distance">{place.distanceKm} km</strong></button>) : <div className="places-empty"><Icon name="pin"/><span><b>Brak miejsc w tym promieniu</b><small>Zwiększ promień wyszukiwania albo zmień lokalizację.</small></span></div>}</div>}
           </div>
 
           <section className="weather-preview" aria-live="polite"><div className="weather-preview-heading"><div><span className="section-label">Pogoda podczas aktywności</span><p>{form.activityDate} · {form.startTime}–{form.endTime}</p></div><span>Open-Meteo</span></div>{weatherBusy&&<div className="weather-preview-loading"><span className="spinner"/>Pobieram prognozę dla wybranej lokalizacji…</div>}{weatherError&&!weatherBusy&&<div className="weather-preview-error"><Icon name="cloud"/><span>{weatherError}</span></div>}{weatherPreview&&!weatherBusy&&<div className="weather-preview-grid"><div><Icon name="cloud"/><span><small>Warunki</small><b>{weatherDescription(weatherPreview)}</b></span></div><div><small>Temperatura</small><b>{weatherPreview.temperature ?? '—'}°C</b></div><div><small>Wiatr maks.</small><b>{weatherPreview.windSpeed ?? '—'} km/h</b></div><div><small>Opady łącznie</small><b>{weatherPreview.precipitation ?? 0} mm</b></div></div>}{!weatherPreview&&!weatherBusy&&!weatherError&&<p className="weather-preview-hint">Uzupełnij lokalizację, datę i godziny, aby zobaczyć prognozę.</p>}</section>
