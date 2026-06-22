@@ -3,6 +3,7 @@ import { api } from './api';
 import ActivityDetails from './components/ActivityDetails';
 import ActivityModal from './components/ActivityModal';
 import Icon from './components/Icon';
+import NotificationBell from './components/NotificationBell';
 import Toast from './components/Toast';
 import { demoActivities, demoUser, SPORTS } from './data';
 import Analytics from './pages/Analytics';
@@ -19,11 +20,11 @@ function dateTimeForZone(timeZone) {
 
 const localDateTime = () => dateTimeForZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd }) {
+function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd, notifications, onNotificationSelect, onActivityStatus }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const nav = [['dashboard','home','Pulpit'],['calendar','calendar','Kalendarz'],['analytics','chart','Statystyki'],['settings','settings','Ustawienia']];
   const sidebarNav = nav.filter(([key]) => key !== 'calendar');
-  return <div className="app-shell"><aside className={`sidebar ${mobileMenu?'open':''}`}><div className="sidebar-top"><a className="brand" href="#dashboard" onClick={()=>setPage('dashboard')}><span className="brand-mark"><Icon name="spark"/></span><b>PlanYour<span>Fit</span></b></a><button className="icon-button sidebar-close" onClick={()=>setMobileMenu(false)}><Icon name="close"/></button></div><nav>{sidebarNav.map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>{setPage(key);setMobileMenu(false)}}><Icon name={icon}/><span>{label}</span></button>)}</nav><div className="sidebar-promo"><span><Icon name="spark"/></span><b>Dobry plan to pół sukcesu.</b><p>Reszta to pierwszy krok.</p></div><button className="logout-button" onClick={onLogout}><Icon name="logout"/> Wyloguj się</button></aside>{mobileMenu&&<div className="sidebar-overlay" onClick={()=>setMobileMenu(false)}/>}<div className="app-main"><header className="topbar"><button className="icon-button menu-button" onClick={()=>setMobileMenu(true)}><Icon name="menu"/></button><div className="topbar-search"><Icon name="search"/><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Szukaj aktywności…"/><select value={sportFilter} onChange={(e)=>setSportFilter(e.target.value)} aria-label="Filtruj sport"><option value="">Wszystkie</option>{Object.entries(SPORTS).map(([key,s])=><option value={key} key={key}>{s.label}</option>)}</select></div><div className="topbar-actions"><button className="icon-button" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title="Zmień motyw"><Icon name={theme==='dark'?'sun':'moon'}/></button><button className="icon-button notification"><Icon name="bell"/><i/></button><button className="profile-button" onClick={()=>setPage('settings')}><span>{user.name.slice(0,2).toUpperCase()}</span><div><b>{user.name}</b><small>{user.demo?'Tryb demo':'Moje konto'}</small></div><Icon name="chevronRight" size={15}/></button></div></header><main>{children}</main><nav className="mobile-nav">{nav.slice(0,4).map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>setPage(key)}><Icon name={icon}/><small>{label}</small></button>)}<button className="mobile-add" onClick={()=>onAdd()}><Icon name="plus"/></button></nav></div></div>;
+  return <div className="app-shell"><aside className={`sidebar ${mobileMenu?'open':''}`}><div className="sidebar-top"><a className="brand" href="#dashboard" onClick={()=>setPage('dashboard')}><span className="brand-mark"><Icon name="spark"/></span><b>PlanYour<span>Fit</span></b></a><button className="icon-button sidebar-close" onClick={()=>setMobileMenu(false)}><Icon name="close"/></button></div><nav>{sidebarNav.map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>{setPage(key);setMobileMenu(false)}}><Icon name={icon}/><span>{label}</span></button>)}</nav><div className="sidebar-promo"><span><Icon name="spark"/></span><b>Dobry plan to pół sukcesu.</b><p>Reszta to pierwszy krok.</p></div><button className="logout-button" onClick={onLogout}><Icon name="logout"/> Wyloguj się</button></aside>{mobileMenu&&<div className="sidebar-overlay" onClick={()=>setMobileMenu(false)}/>}<div className="app-main"><header className="topbar"><button className="icon-button menu-button" onClick={()=>setMobileMenu(true)}><Icon name="menu"/></button><div className="topbar-search"><Icon name="search"/><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Szukaj aktywności…"/><select value={sportFilter} onChange={(e)=>setSportFilter(e.target.value)} aria-label="Filtruj sport"><option value="">Wszystkie</option>{Object.entries(SPORTS).map(([key,s])=><option value={key} key={key}>{s.label}</option>)}</select></div><div className="topbar-actions"><button className="icon-button" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title="Zmień motyw"><Icon name={theme==='dark'?'sun':'moon'}/></button><NotificationBell notifications={notifications} onSelect={onNotificationSelect} onActivityStatus={onActivityStatus}/><button className="profile-button" onClick={()=>setPage('settings')}><span>{user.name.slice(0,2).toUpperCase()}</span><div><b>{user.name}</b><small>{user.demo?'Tryb demo':'Moje konto'}</small></div><Icon name="chevronRight" size={15}/></button></div></header><main>{children}</main><nav className="mobile-nav">{nav.slice(0,4).map(([key,icon,label])=><button className={page===key?'active':''} key={key} onClick={()=>setPage(key)}><Icon name={icon}/><small>{label}</small></button>)}<button className="mobile-add" onClick={()=>onAdd()}><Icon name="plus"/></button></nav></div></div>;
 }
 
 export default function App() {
@@ -55,7 +56,11 @@ export default function App() {
     let cancelled = false; let interval;
     const update = async () => {
       try {
-        if (!calendarLocation) { if (!cancelled) setCalendarContext({ ...localDateTime(), source:'device' }); return; }
+        if (!calendarLocation) {
+          const refresh = () => setCalendarContext({ ...localDateTime(), source:'device' });
+          if (!cancelled) { refresh(); interval = window.setInterval(refresh, 60000); }
+          return;
+        }
         const result = await api.localTime({ lat:calendarLocation.lat, lng:calendarLocation.lng });
         if (cancelled) return;
         const refresh = () => setCalendarContext({ ...dateTimeForZone(result.timezone), source:calendarLocation.source });
@@ -70,16 +75,66 @@ export default function App() {
   const openAuth = (mode) => { setAuthMode(mode); setAuthError(''); setScreen('auth'); };
   const handleAuth = async (form) => { setAuthError(''); if (authMode==='register'&&form.password!==form.confirmPassword) return setAuthError('Hasła nie są takie same.'); setAuthBusy(true); try { const result=authMode==='login'?await api.login({email:form.email,password:form.password}):await api.register(form); setUser(result.user); setDemo(false); setScreen('app'); const list=await api.activities(); setActivities(list.activities); notify(authMode==='login'?'Miło Cię znów widzieć!':'Konto jest gotowe. Zaczynamy!', 'success'); } catch(error) { setAuthError(error.message); } finally { setAuthBusy(false); } };
   const logout = async () => { try { if(!demo) await api.logout(); } catch{} setUser(null);setActivities([]);setDemo(false);setScreen('landing');setPage('dashboard'); };
-  const saveActivity = (payload,id) => { if(id) setActivities((list)=>list.map((item)=>item.id===id?{...item,...payload,id}:item)); else { const count=payload.repeatWeekly?payload.repeatCount:1; const created=Array.from({length:count},(_,i)=>{const d=new Date(`${payload.activityDate}T12:00:00`);d.setDate(d.getDate()+i*7);return {...payload,id:`local-${Date.now()}-${i}`,activityDate:d.toISOString().slice(0,10)};}); setActivities((list)=>[...list,...created]); } setModal(null); };
+  const saveActivity = (payload,id,createdIds=[]) => { if(id) setActivities((list)=>list.map((item)=>item.id===id?{...item,...payload,id}:item)); else { const count=payload.repeatWeekly?payload.repeatCount:1; const created=Array.from({length:count},(_,i)=>{const d=new Date(`${payload.activityDate}T12:00:00`);d.setDate(d.getDate()+i*7);return {...payload,status:'planned',id:createdIds[i]||`local-${Date.now()}-${i}`,activityDate:d.toISOString().slice(0,10)};}); setActivities((list)=>[...list,...created]); } setModal(null); };
   const deleteActivity = async (activity) => { if(!window.confirm(`Usunąć „${activity.title}”?`)) return; try { if(!demo) await api.deleteActivity(activity.id); setActivities((list)=>list.filter((a)=>a.id!==activity.id));setSelected(null);notify('Aktywność została usunięta.','success'); } catch(error){notify(error.message,'error');} };
   const regenerateRoute = async (activity) => { try { const variant=Number(activity.details?.routeGeojson?.properties?.variant||0)+1; const route=await api.route({lat:activity.locationLat,lng:activity.locationLng,targetDistanceKm:Number(activity.details?.targetDistanceKm||activity.details?.actualDistanceKm||5),paceMinPerKm:Number(activity.details?.paceMinPerKm||6),variant}); const updated={...activity,details:{...activity.details,actualDistanceKm:route.actualDistanceKm,estimatedDurationMinutes:route.estimatedDurationMinutes,routeGeojson:route.route}}; if(!demo) await api.updateActivity(activity.id,updated,true); setActivities((list)=>list.map((item)=>item.id===activity.id?updated:item));setSelected(updated);notify('Wygenerowano nowy wariant trasy.','success');return true;} catch(error){notify(error.message,'error');return false;} };
   const openActivityModal = (date = calendarContext.currentDate) => setModal({date});
   const visibleActivities = useMemo(()=>activities,[activities]);
+  const notifications = useMemo(() => {
+    const nowKey = `${calendarContext.currentDate}${calendarContext.currentTime}`;
+    const confirmations = activities
+      .filter((item) => (item.status || 'planned') === 'planned' && `${item.activityDate}${item.endTime || item.startTime}` <= nowKey)
+      .sort((a, b) => `${b.activityDate}${b.endTime}`.localeCompare(`${a.activityDate}${a.endTime}`))
+      .map((item) => ({
+        id:`confirmation-${item.id}`,
+        type:'confirmation',
+        title:`Czy trening „${item.title}” się odbył?`,
+        body:`${new Intl.DateTimeFormat('pl-PL', { day:'numeric', month:'long' }).format(new Date(`${item.activityDate}T12:00:00`))}, ${item.startTime}–${item.endTime}`,
+        activity:item,
+      }));
+    const reminders = activities
+      .filter((item) => (item.status || 'planned') === 'planned' && `${item.activityDate}${item.endTime || item.startTime}` > nowKey)
+      .sort((a, b) => `${a.activityDate}${a.startTime}`.localeCompare(`${b.activityDate}${b.startTime}`))
+      .slice(0, 6)
+      .map((item) => {
+        const dateLabel = item.activityDate === calendarContext.currentDate
+          ? 'Dzisiaj'
+          : new Intl.DateTimeFormat('pl-PL', { day:'numeric', month:'long' }).format(new Date(`${item.activityDate}T12:00:00`));
+        return {
+          id:`activity-${item.id}-${item.activityDate}-${item.startTime}`,
+          type:'activity',
+          title:item.title,
+          body:`${dateLabel} o ${item.startTime}${item.locationAddress ? ` · ${item.locationAddress}` : ''}`,
+          activity:item,
+        };
+      });
+    const monthPrefix = calendarContext.currentDate.slice(0, 7);
+    const completedCount = activities.filter((item) => item.status === 'completed' && item.activityDate?.startsWith(monthPrefix)).length;
+    const goal = Number(user?.monthlyActivityGoal || 12);
+    if (completedCount >= goal) reminders.unshift({
+      id:`goal-${monthPrefix}-${goal}`,
+      type:'goal',
+      title:'Miesięczny cel ukończony!',
+      body:`Masz ${completedCount} z ${goal} aktywności. Świetna robota!`,
+    });
+    return [...confirmations, ...reminders];
+  }, [activities, calendarContext.currentDate, calendarContext.currentTime, user?.monthlyActivityGoal]);
+  const selectNotification = (notification) => {
+    if (notification.type === 'activity') setSelected(notification.activity);
+    else setPage('analytics');
+  };
+  const updateActivityStatus = async (activity, status) => {
+    try {
+      if (!demo) await api.updateActivityStatus(activity.id, status);
+      setActivities((list) => list.map((item) => item.id === activity.id ? { ...item, status } : item));
+      notify(status === 'completed' ? 'Świetnie! Trening został zaliczony.' : 'Trening nie został zaliczony.', status === 'completed' ? 'success' : 'error');
+    } catch (error) { notify(error.message, 'error'); }
+  };
   if(screen==='landing') return <><Landing onAuth={openAuth} onDemo={enterDemo}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
   if(screen==='auth') return <><Auth mode={authMode} onMode={setAuthMode} onSubmit={handleAuth} onBack={()=>setScreen('landing')} busy={authBusy} error={authError}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
-  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={openActivityModal}>
+  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={openActivityModal} notifications={notifications} onNotificationSelect={selectNotification} onActivityStatus={updateActivityStatus}>
     {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={openActivityModal} onSelect={setSelected} search={search} sportFilter={sportFilter} calendarContext={calendarContext}/>} 
     {page==='analytics'&&<Analytics activities={visibleActivities} user={user} demo={demo} notify={notify} onUserChange={setUser} calendarContext={calendarContext}/>} 
-    {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser}/>} 
+    {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser} notifications={notifications} onNotificationSelect={selectNotification} onActivityStatus={updateActivityStatus}/>} 
   </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} user={user} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity} onRegenerateRoute={regenerateRoute}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
 }

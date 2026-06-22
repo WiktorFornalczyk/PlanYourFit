@@ -143,11 +143,12 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
           : (await api.recommendation({ activityType: location.activityType, courtType: location.details.courtType, selectedPlace: location.details.selectedPlaceId, weather })).recommendation;
         payload.details = { ...payload.details, weather, recommendation };
       }
+      let createdIds = [];
       if (!demo) {
         if (activity) await api.updateActivity(activity.id, payload, Boolean(overlap));
-        else await api.createActivity(payload, Boolean(overlap));
+        else createdIds = (await api.createActivity(payload, Boolean(overlap))).ids || [];
       }
-      onSaved(payload, activity?.id);
+      onSaved(payload, activity?.id, createdIds);
       notify(activity ? 'Aktywność została zaktualizowana.' : 'Aktywność jest już w kalendarzu!', 'success');
     } catch (error) { notify(error.message, 'error'); setBusy(false); }
   };

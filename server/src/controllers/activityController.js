@@ -129,4 +129,13 @@ async function remove(req, res) {
   res.status(204).end();
 }
 
-module.exports = { list, getOne, create, update, remove, mapActivity, SELECT_ACTIVITY };
+async function updateStatus(req, res) {
+  const [result] = await pool.execute(
+    'UPDATE activities SET status=? WHERE id=? AND user_id=?',
+    [req.body.status, req.params.id, req.user.id],
+  );
+  if (!result.affectedRows) return res.status(404).json({ message: 'Nie znaleziono aktywności.' });
+  res.json({ message:req.body.status === 'completed' ? 'Trening został oznaczony jako wykonany.' : 'Trening nie został zaliczony.', status:req.body.status });
+}
+
+module.exports = { list, getOne, create, update, updateStatus, remove, mapActivity, SELECT_ACTIVITY };
