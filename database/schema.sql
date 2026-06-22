@@ -11,11 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
   default_location_lat DECIMAL(10,7) NULL,
   default_location_lng DECIMAL(10,7) NULL,
   preferred_radius_km TINYINT UNSIGNED NOT NULL DEFAULT 10,
+  monthly_activity_goal TINYINT UNSIGNED NOT NULL DEFAULT 12,
   theme ENUM('light', 'dark', 'system') NOT NULL DEFAULT 'system',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_email (email),
-  CONSTRAINT chk_users_radius CHECK (preferred_radius_km BETWEEN 1 AND 50)
+  CONSTRAINT chk_users_radius CHECK (preferred_radius_km BETWEEN 1 AND 50),
+  CONSTRAINT chk_users_activity_goal CHECK (monthly_activity_goal BETWEEN 1 AND 100)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS activities (

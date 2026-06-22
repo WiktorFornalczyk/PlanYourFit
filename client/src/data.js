@@ -7,7 +7,7 @@ export const SPORTS = {
   swimming: { label: 'Pływanie', short: 'Basen', icon: 'swim', color: 'blue' },
 };
 
-export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', defaultPostalCode: '00-001', defaultLocationLat: 52.2297, defaultLocationLng: 21.0122, preferredRadiusKm: 10, theme: 'light', demo: true };
+export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', defaultPostalCode: '00-001', defaultLocationLat: 52.2297, defaultLocationLng: 21.0122, preferredRadiusKm: 10, monthlyActivityGoal: 12, theme: 'light', demo: true };
 
 export const demoActivities = [
   { id: 'd1', activityType: 'running', title: 'Poranny bieg', activityDate: afterDays(1), startTime: '07:30', endTime: '08:15', locationAddress: 'Park Saski, Warszawa', postalCode: '00-102', note: 'Spokojne tempo, druga strefa', details: { targetDistanceKm: 7, actualDistanceKm: 6.92, paceMinPerKm: 6, estimatedDurationMinutes: 42 } },

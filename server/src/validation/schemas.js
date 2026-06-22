@@ -61,5 +61,6 @@ const profileSchema = z.object({
 });
 
 const changePasswordSchema = z.object({ currentPassword: z.string().min(1), newPassword: password });
+const activityGoalSchema = z.object({ monthlyActivityGoal: z.coerce.number().int().min(1).max(100) });
 
-module.exports = { registerSchema, loginSchema, activitySchema, profileSchema, changePasswordSchema };
+module.exports = { registerSchema, loginSchema, activitySchema, profileSchema, changePasswordSchema, activityGoalSchema };

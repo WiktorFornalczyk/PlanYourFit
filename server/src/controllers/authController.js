@@ -4,7 +4,7 @@ const pool = require('../database/pool');
 const { jwtSecret, jwtExpiresIn, nodeEnv } = require('../config');
 
 const cookieOptions = { httpOnly: true, sameSite: 'lax', secure: nodeEnv === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 };
-const publicUser = (user) => ({ id: user.id, name: user.name, email: user.email, defaultLocation: user.default_location, defaultPostalCode: user.default_postal_code, defaultLocationLat: user.default_location_lat, defaultLocationLng: user.default_location_lng, preferredRadiusKm: user.preferred_radius_km, theme: user.theme });
+const publicUser = (user) => ({ id: user.id, name: user.name, email: user.email, defaultLocation: user.default_location, defaultPostalCode: user.default_postal_code, defaultLocationLat: user.default_location_lat, defaultLocationLng: user.default_location_lng, preferredRadiusKm: user.preferred_radius_km, monthlyActivityGoal: user.monthly_activity_goal || 12, theme: user.theme });
 
 async function register(req, res) {
   const { name, email, password } = req.body;

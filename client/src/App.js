@@ -79,7 +79,7 @@ export default function App() {
   if(screen==='auth') return <><Auth mode={authMode} onMode={setAuthMode} onSubmit={handleAuth} onBack={()=>setScreen('landing')} busy={authBusy} error={authError}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
   return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={openActivityModal}>
     {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={openActivityModal} onSelect={setSelected} search={search} sportFilter={sportFilter} calendarContext={calendarContext}/>} 
-    {page==='analytics'&&<Analytics activities={visibleActivities}/>} 
+    {page==='analytics'&&<Analytics activities={visibleActivities} user={user} demo={demo} notify={notify} onUserChange={setUser} calendarContext={calendarContext}/>} 
     {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser}/>} 
   </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} user={user} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity} onRegenerateRoute={regenerateRoute}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
 }

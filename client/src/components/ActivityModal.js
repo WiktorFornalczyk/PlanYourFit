@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Icon from './Icon';
+import NumberInput from './NumberInput';
 import { api } from '../api';
 import { demoPlaces, demoWeather, SPORTS } from '../data';
 
@@ -169,7 +170,7 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
           {overlap && <div className="inline-alert warning"><Icon name="clock"/><div><b>Ten termin nachodzi na „{overlap.title}”</b><span>Możesz zapisać mimo to, ale warto sprawdzić godziny.</span></div></div>}
 
           {form.activityType === 'basketball' && <div className="dynamic-section"><div className="section-label">Rodzaj boiska</div><div className="choice-row"><button type="button" className={form.details.courtType === 'outdoor' ? 'active' : ''} onClick={() => setDetail('courtType', 'outdoor')}>Na zewnątrz</button><button type="button" className={form.details.courtType === 'indoor' ? 'active' : ''} onClick={() => setDetail('courtType', 'indoor')}>Na hali</button></div></div>}
-          {form.activityType === 'running' && <div className="dynamic-section running-fields"><label className="field"><span>Dystans</span><div className="input-suffix"><input type="number" min="0.5" max="100" step="0.5" value={form.details.targetDistanceKm} onChange={(e) => setDetail('targetDistanceKm', e.target.value)}/><b>km</b></div>{errors.targetDistanceKm && <small>{errors.targetDistanceKm}</small>}</label><label className="field"><span>Tempo (opcjonalnie)</span><div className="input-suffix"><input type="number" min="2" max="20" step="0.1" value={form.details.paceMinPerKm} onChange={(e) => setDetail('paceMinPerKm', e.target.value)}/><b>min/km</b></div></label></div>}
+          {form.activityType === 'running' && <div className="dynamic-section running-fields"><label className="field"><span>Dystans</span><div className="input-suffix"><NumberInput min="0.5" max="100" step="0.5" value={form.details.targetDistanceKm} onChange={(value) => setDetail('targetDistanceKm', value)}/><b>km</b></div>{errors.targetDistanceKm && <small>{errors.targetDistanceKm}</small>}</label><label className="field"><span>Tempo (opcjonalnie)</span><div className="input-suffix"><NumberInput min="2" max="20" step="0.1" value={form.details.paceMinPerKm} onChange={(value) => setDetail('paceMinPerKm', value)}/><b>min/km</b></div></label></div>}
 
           <div className="location-block">
             <div className="location-heading"><div><span className="section-label">Lokalizacja</span><p>Podaj adres lub użyj swojej pozycji</p></div><button type="button" className="text-button" onClick={useLocation} disabled={geoBusy}><Icon name="target"/>{geoBusy ? 'Pobieram…' : 'Użyj mojej lokalizacji'}</button></div>

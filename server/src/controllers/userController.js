@@ -19,4 +19,9 @@ async function changePassword(req, res) {
   res.json({ message: 'Hasło zostało zmienione.' });
 }
 
-module.exports = { updateProfile, changePassword };
+async function updateActivityGoal(req, res) {
+  await pool.execute('UPDATE users SET monthly_activity_goal=? WHERE id=?', [req.body.monthlyActivityGoal, req.user.id]);
+  res.json({ message:'Miesięczny cel został zapisany.', monthlyActivityGoal:req.body.monthlyActivityGoal });
+}
+
+module.exports = { updateProfile, changePassword, updateActivityGoal };
