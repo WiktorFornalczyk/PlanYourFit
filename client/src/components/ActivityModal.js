@@ -5,7 +5,7 @@ import { demoPlaces, demoWeather, SPORTS } from '../data';
 
 const emptyForm = (date) => ({
   activityType: 'running', title: 'Poranny bieg', activityDate: date || new Date().toISOString().slice(0, 10),
-  startTime: '07:30', endTime: '08:15', locationAddress: '', locationLat: null, locationLng: null,
+  startTime: '07:30', endTime: '08:15', locationAddress: '', postalCode: '', locationLat: null, locationLng: null,
   note: '', searchRadiusKm: 10, repeatWeekly: false, repeatCount: 4,
   details: { targetDistanceKm: 5, paceMinPerKm: 6, courtType: 'outdoor', selectedPlaceId: null },
 });
@@ -64,6 +64,7 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
     if (!form.title.trim()) next.title = 'Podaj nazwę aktywności.';
     if (!form.activityDate) next.activityDate = 'Wybierz datę.';
     if (!form.locationAddress.trim()) next.locationAddress = 'Podaj lokalizację.';
+    if (!/^\d{2}-\d{3}$/.test(form.postalCode.trim())) next.postalCode = 'Podaj kod w formacie 00-000.';
     if (form.endTime <= form.startTime) next.endTime = 'Zakończenie musi być później niż start.';
     if (form.searchRadiusKm < 1 || form.searchRadiusKm > 50) next.searchRadiusKm = 'Dozwolony zakres to 1–50 km.';
     if (form.activityType === 'running' && (!form.details.targetDistanceKm || form.details.targetDistanceKm <= 0)) next.targetDistanceKm = 'Podaj dystans.';
@@ -117,7 +118,7 @@ export default function ActivityModal({ initialDate, activity, demo, existingAct
 
           <div className="location-block">
             <div className="location-heading"><div><span className="section-label">Lokalizacja</span><p>Podaj adres lub użyj swojej pozycji</p></div><button type="button" className="text-button" onClick={useLocation} disabled={geoBusy}><Icon name="target"/>{geoBusy ? 'Pobieram…' : 'Użyj mojej lokalizacji'}</button></div>
-            <label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}
+            <div className="location-fields"><div><label className="field location-input"><Icon name="pin"/><input value={form.locationAddress} onChange={(e) => set('locationAddress', e.target.value)} placeholder="Wpisz adres lub nazwę miejsca"/></label>{errors.locationAddress && <small className="field-error">{errors.locationAddress}</small>}</div><label className="field"><span>Kod pocztowy</span><input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="00-000" inputMode="numeric" maxLength="6" pattern="\d{2}-\d{3}"/>{errors.postalCode && <small className="field-error">{errors.postalCode}</small>}</label></div>
             <div className="range-row"><label>Promień wyszukiwania <b>{form.searchRadiusKm} km</b></label><input type="range" min="1" max="50" value={form.searchRadiusKm} onChange={(e) => set('searchRadiusKm', e.target.value)}/></div>
             {((form.activityType === 'swimming') || (form.activityType === 'basketball' && form.details.courtType === 'indoor')) && <button type="button" className="secondary-button full" onClick={findPlaces}><Icon name="search"/> Znajdź {form.activityType === 'swimming' ? 'baseny' : 'hale'} w pobliżu</button>}
             {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam najlepszych miejsc…</div> : places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => { setDetail('selectedPlaceId', place.id); set('locationAddress', place.address); }}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address} · {place.distanceKm} km</small></span><em>{place.rating} ★</em></button>)}</div>}

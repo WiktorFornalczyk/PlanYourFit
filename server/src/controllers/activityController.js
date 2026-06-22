@@ -13,7 +13,7 @@ function mapActivity(row) {
     id: row.id, activityType: row.activity_type, title: row.title,
     activityDate: row.activity_date instanceof Date ? row.activity_date.toISOString().slice(0, 10) : row.activity_date,
     startTime: String(row.start_time).slice(0, 5), endTime: String(row.end_time).slice(0, 5),
-    locationLat: row.location_lat, locationLng: row.location_lng, locationAddress: row.location_address,
+    locationLat: row.location_lat, locationLng: row.location_lng, locationAddress: row.location_address, postalCode: row.postal_code,
     note: row.note, status: row.status, searchRadiusKm: row.search_radius_km,
     details: {
       courtType: row.court_type, selectedPlaceId: row.basketball_place_id || row.swimming_place_id,
@@ -30,7 +30,7 @@ async function list(req, res) {
   if (from) { conditions.push('a.activity_date >= ?'); params.push(from); }
   if (to) { conditions.push('a.activity_date <= ?'); params.push(to); }
   if (type) { conditions.push('a.activity_type = ?'); params.push(type); }
-  if (search) { conditions.push('(a.title LIKE ? OR a.location_address LIKE ? OR a.note LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+  if (search) { conditions.push('(a.title LIKE ? OR a.location_address LIKE ? OR a.postal_code LIKE ? OR a.note LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
   const [rows] = await pool.execute(`${SELECT_ACTIVITY} WHERE ${conditions.join(' AND ')} ORDER BY a.activity_date, a.start_time`, params);
   res.json({ activities: rows.map(mapActivity) });
 }
@@ -84,8 +84,8 @@ async function create(req, res) {
     for (let i = 0; i < count; i += 1) {
       const date = addDays(req.body.activityDate, i * 7);
       const [result] = await connection.execute(`INSERT INTO activities
-        (user_id, activity_type, title, activity_date, start_time, end_time, location_lat, location_lng, location_address, note, search_radius_km)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [req.user.id, req.body.activityType, req.body.title, date, req.body.startTime, req.body.endTime, req.body.locationLat ?? null, req.body.locationLng ?? null, req.body.locationAddress, req.body.note, req.body.searchRadiusKm]);
+        (user_id, activity_type, title, activity_date, start_time, end_time, location_lat, location_lng, location_address, postal_code, note, search_radius_km)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [req.user.id, req.body.activityType, req.body.title, date, req.body.startTime, req.body.endTime, req.body.locationLat ?? null, req.body.locationLng ?? null, req.body.locationAddress, req.body.postalCode, req.body.note, req.body.searchRadiusKm]);
       await insertDetails(connection, result.insertId, req.body); ids.push(result.insertId);
     }
     await connection.commit();
@@ -102,8 +102,8 @@ async function update(req, res) {
     const overlaps = await assertNoOverlap(connection, req.user.id, req.body, req.params.id);
     if (overlaps.length && req.query.allowOverlap !== 'true') { await connection.rollback(); return res.status(409).json({ message: `Termin nachodzi na: ${overlaps[0].title}.`, overlaps }); }
     await connection.execute(`UPDATE activities SET activity_type=?, title=?, activity_date=?, start_time=?, end_time=?,
-      location_lat=?, location_lng=?, location_address=?, note=?, search_radius_km=? WHERE id=? AND user_id=?`,
-    [req.body.activityType, req.body.title, req.body.activityDate, req.body.startTime, req.body.endTime, req.body.locationLat ?? null, req.body.locationLng ?? null, req.body.locationAddress, req.body.note, req.body.searchRadiusKm, req.params.id, req.user.id]);
+      location_lat=?, location_lng=?, location_address=?, postal_code=?, note=?, search_radius_km=? WHERE id=? AND user_id=?`,
+    [req.body.activityType, req.body.title, req.body.activityDate, req.body.startTime, req.body.endTime, req.body.locationLat ?? null, req.body.locationLng ?? null, req.body.locationAddress, req.body.postalCode, req.body.note, req.body.searchRadiusKm, req.params.id, req.user.id]);
     await connection.execute('DELETE FROM basketball_details WHERE activity_id=?', [req.params.id]);
     await connection.execute('DELETE FROM running_details WHERE activity_id=?', [req.params.id]);
     await connection.execute('DELETE FROM swimming_details WHERE activity_id=?', [req.params.id]);

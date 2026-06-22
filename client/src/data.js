@@ -7,13 +7,13 @@ export const SPORTS = {
   swimming: { label: 'Pływanie', short: 'Basen', icon: 'swim', color: 'blue' },
 };
 
-export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', preferredRadiusKm: 10, theme: 'light', demo: true };
+export const demoUser = { id: 'demo', name: 'Maja', email: 'demo@planyourfit.pl', defaultLocation: 'Warszawa', defaultPostalCode: '00-001', preferredRadiusKm: 10, theme: 'light', demo: true };
 
 export const demoActivities = [
-  { id: 'd1', activityType: 'running', title: 'Poranny bieg', activityDate: afterDays(1), startTime: '07:30', endTime: '08:15', locationAddress: 'Park Saski, Warszawa', note: 'Spokojne tempo, druga strefa', details: { targetDistanceKm: 7, actualDistanceKm: 6.92, paceMinPerKm: 6, estimatedDurationMinutes: 42 } },
-  { id: 'd2', activityType: 'basketball', title: 'Koszykówka ze znajomymi', activityDate: afterDays(3), startTime: '18:00', endTime: '19:30', locationAddress: 'Hala Sportowa Arena', note: 'Rezerwacja potwierdzona', details: { courtType: 'indoor', selectedPlaceId: 'demo-hall-1' } },
-  { id: 'd3', activityType: 'swimming', title: 'Regeneracja na basenie', activityDate: afterDays(5), startTime: '10:00', endTime: '11:00', locationAddress: 'Pływalnia Fala', note: 'Technika kraula', details: { selectedPlaceId: 'demo-pool-1' } },
-  { id: 'd4', activityType: 'running', title: 'Luźne 5 km', activityDate: afterDays(-2), startTime: '17:00', endTime: '17:35', locationAddress: 'Bulwary Wiślane', note: '', details: { targetDistanceKm: 5, actualDistanceKm: 5.1, paceMinPerKm: 6.5 } },
+  { id: 'd1', activityType: 'running', title: 'Poranny bieg', activityDate: afterDays(1), startTime: '07:30', endTime: '08:15', locationAddress: 'Park Saski, Warszawa', postalCode: '00-102', note: 'Spokojne tempo, druga strefa', details: { targetDistanceKm: 7, actualDistanceKm: 6.92, paceMinPerKm: 6, estimatedDurationMinutes: 42 } },
+  { id: 'd2', activityType: 'basketball', title: 'Koszykówka ze znajomymi', activityDate: afterDays(3), startTime: '18:00', endTime: '19:30', locationAddress: 'Hala Sportowa Arena', postalCode: '00-001', note: 'Rezerwacja potwierdzona', details: { courtType: 'indoor', selectedPlaceId: 'demo-hall-1' } },
+  { id: 'd3', activityType: 'swimming', title: 'Regeneracja na basenie', activityDate: afterDays(5), startTime: '10:00', endTime: '11:00', locationAddress: 'Pływalnia Fala', postalCode: '00-001', note: 'Technika kraula', details: { selectedPlaceId: 'demo-pool-1' } },
+  { id: 'd4', activityType: 'running', title: 'Luźne 5 km', activityDate: afterDays(-2), startTime: '17:00', endTime: '17:35', locationAddress: 'Bulwary Wiślane', postalCode: '00-001', note: '', details: { targetDistanceKm: 5, actualDistanceKm: 5.1, paceMinPerKm: 6.5 } },
 ];
 
 export const demoWeather = { available: true, temperature: 18, precipitation: 0, windSpeed: 8, thunderstorm: false, source: 'Open-Meteo' };

@@ -4,8 +4,8 @@ const pool = require('../database/pool');
 async function updateProfile(req, res) {
   const [emailOwner] = await pool.execute('SELECT id FROM users WHERE email=? AND id<>? LIMIT 1', [req.body.email.toLowerCase(), req.user.id]);
   if (emailOwner.length) return res.status(409).json({ message: 'Ten adres e-mail jest już używany.' });
-  await pool.execute(`UPDATE users SET name=?, email=?, default_location=?, preferred_radius_km=?, theme=? WHERE id=?`,
-    [req.body.name, req.body.email.toLowerCase(), req.body.defaultLocation, req.body.preferredRadiusKm, req.body.theme, req.user.id]);
+  await pool.execute(`UPDATE users SET name=?, email=?, default_location=?, default_postal_code=?, preferred_radius_km=?, theme=? WHERE id=?`,
+    [req.body.name, req.body.email.toLowerCase(), req.body.defaultLocation, req.body.defaultPostalCode, req.body.preferredRadiusKm, req.body.theme, req.user.id]);
   res.json({ message: 'Ustawienia konta zostały zapisane.' });
 }
 

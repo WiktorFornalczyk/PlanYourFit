@@ -35,6 +35,7 @@ const activitySchema = z.object({
   locationLat: z.coerce.number().min(-90).max(90).nullable().optional(),
   locationLng: z.coerce.number().min(-180).max(180).nullable().optional(),
   locationAddress: z.string().trim().min(2, 'Lokalizacja jest wymagana.').max(255),
+  postalCode: z.string().trim().regex(/^\d{2}-\d{3}$/, 'Podaj kod pocztowy w formacie 00-000.'),
   note: z.string().max(1000).optional().default(''),
   searchRadiusKm: z.coerce.number().min(1).max(50).optional().default(10),
   repeatWeekly: z.boolean().optional().default(false),
@@ -50,8 +51,11 @@ const profileSchema = z.object({
   name: z.string().trim().min(2).max(80),
   email,
   defaultLocation: z.string().trim().max(255).optional().default(''),
+  defaultPostalCode: z.string().trim().refine((value) => !value || /^\d{2}-\d{3}$/.test(value), 'Podaj kod pocztowy w formacie 00-000.').optional().default(''),
   preferredRadiusKm: z.coerce.number().min(1).max(50).default(10),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
+}).refine((data) => !data.defaultLocation || data.defaultPostalCode, {
+  message: 'Podaj kod pocztowy dla domyślnej lokalizacji.', path: ['defaultPostalCode'],
 });
 
 const changePasswordSchema = z.object({ currentPassword: z.string().min(1), newPassword: password });

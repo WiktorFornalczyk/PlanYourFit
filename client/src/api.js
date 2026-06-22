@@ -31,5 +31,4 @@ export const api = {
   recommendation: (body) => request('/recommendations/evaluate', { method: 'POST', body: JSON.stringify(body) }),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body: JSON.stringify(body) }),
   changePassword: (body) => request('/users/me/password', { method: 'PUT', body: JSON.stringify(body) }),
-  exportUrl: `${BASE_URL}/export/ics`,
 };

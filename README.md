@@ -14,7 +14,6 @@ Pełnoprawna aplikacja do planowania aktywności fizycznej. Łączy kalendarz tr
 - generowanie pętli biegowych i zapisywanie GeoJSON,
 - moduł rekomendacji z oceną `good`, `warning`, `bad` i `unknown`,
 - filtrowanie, wyszukiwanie, podsumowania tygodnia i miesiąca,
-- eksport kalendarza do `.ics`,
 - responsywny interfejs oraz tryb jasny i ciemny,
 - tryb demonstracyjny dostępny bez konfiguracji bazy.
 
@@ -87,7 +86,6 @@ Klucze nigdy nie trafiają do frontendu. Zapytania przechodzą przez REST API, a
 | Rekomendacje | `POST /api/recommendations/evaluate` |
 | Statystyki | `GET /api/stats/week`, `GET /api/stats/month` |
 | Konto | `PUT /api/users/me`, `PUT /api/users/me/password` |
-| Eksport | `GET /api/export/ics` |
 
 ## Testy i build
 
