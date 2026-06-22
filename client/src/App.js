@@ -11,6 +11,14 @@ import Dashboard from './pages/Dashboard';
 import Landing from './pages/Landing';
 import Settings from './pages/Settings';
 
+function dateTimeForZone(timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { currentDate:`${value.year}-${value.month}-${value.day}`, currentTime:`${value.hour}:${value.minute}`, timezone:timeZone };
+}
+
+const localDateTime = () => dateTimeForZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
 function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const nav = [['dashboard','home','Pulpit'],['calendar','calendar','Kalendarz'],['analytics','chart','Statystyki'],['settings','settings','Ustawienia']];
@@ -25,6 +33,7 @@ export default function App() {
   const [search, setSearch] = useState(''); const [sportFilter, setSportFilter] = useState('');
   const [modal, setModal] = useState(null); const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState(null); const [authBusy, setAuthBusy] = useState(false); const [authError, setAuthError] = useState('');
+  const [calendarContext, setCalendarContext] = useState(localDateTime);
 
   const notify = (message, type='success') => { setToast({message,type}); window.clearTimeout(window.__pyfToast); window.__pyfToast=window.setTimeout(()=>setToast(null),4200); };
   const setTheme = (value) => { const resolved=value==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):value; setThemeState(resolved); localStorage.setItem('pyf-theme',resolved); };
@@ -36,18 +45,41 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
+  const calendarLocation = useMemo(() => {
+    if (user?.defaultLocationLat != null && user?.defaultLocationLng != null) return { lat:user.defaultLocationLat, lng:user.defaultLocationLng, source:'profile' };
+    const latest = [...activities].filter((item) => Number.isFinite(Number(item.locationLat)) && Number.isFinite(Number(item.locationLng))).sort((a,b) => `${b.activityDate}${b.endTime}`.localeCompare(`${a.activityDate}${a.endTime}`))[0];
+    return latest ? { lat:latest.locationLat, lng:latest.locationLng, source:'activity' } : null;
+  }, [user, activities]);
+
+  useEffect(() => {
+    let cancelled = false; let interval;
+    const update = async () => {
+      try {
+        if (!calendarLocation) { if (!cancelled) setCalendarContext({ ...localDateTime(), source:'device' }); return; }
+        const result = await api.localTime({ lat:calendarLocation.lat, lng:calendarLocation.lng });
+        if (cancelled) return;
+        const refresh = () => setCalendarContext({ ...dateTimeForZone(result.timezone), source:calendarLocation.source });
+        refresh(); interval = window.setInterval(refresh, 60000);
+      } catch { if (!cancelled) setCalendarContext({ ...localDateTime(), source:'device' }); }
+    };
+    update();
+    return () => { cancelled = true; if (interval) window.clearInterval(interval); };
+  }, [calendarLocation]);
+
   const enterDemo = () => { setDemo(true); setUser(demoUser); setActivities(demoActivities); setScreen('app'); setPage('dashboard'); notify('Witaj w wersji demonstracyjnej!', 'success'); };
   const openAuth = (mode) => { setAuthMode(mode); setAuthError(''); setScreen('auth'); };
   const handleAuth = async (form) => { setAuthError(''); if (authMode==='register'&&form.password!==form.confirmPassword) return setAuthError('Hasła nie są takie same.'); setAuthBusy(true); try { const result=authMode==='login'?await api.login({email:form.email,password:form.password}):await api.register(form); setUser(result.user); setDemo(false); setScreen('app'); const list=await api.activities(); setActivities(list.activities); notify(authMode==='login'?'Miło Cię znów widzieć!':'Konto jest gotowe. Zaczynamy!', 'success'); } catch(error) { setAuthError(error.message); } finally { setAuthBusy(false); } };
   const logout = async () => { try { if(!demo) await api.logout(); } catch{} setUser(null);setActivities([]);setDemo(false);setScreen('landing');setPage('dashboard'); };
   const saveActivity = (payload,id) => { if(id) setActivities((list)=>list.map((item)=>item.id===id?{...item,...payload,id}:item)); else { const count=payload.repeatWeekly?payload.repeatCount:1; const created=Array.from({length:count},(_,i)=>{const d=new Date(`${payload.activityDate}T12:00:00`);d.setDate(d.getDate()+i*7);return {...payload,id:`local-${Date.now()}-${i}`,activityDate:d.toISOString().slice(0,10)};}); setActivities((list)=>[...list,...created]); } setModal(null); };
   const deleteActivity = async (activity) => { if(!window.confirm(`Usunąć „${activity.title}”?`)) return; try { if(!demo) await api.deleteActivity(activity.id); setActivities((list)=>list.filter((a)=>a.id!==activity.id));setSelected(null);notify('Aktywność została usunięta.','success'); } catch(error){notify(error.message,'error');} };
+  const regenerateRoute = async (activity) => { try { const variant=Number(activity.details?.routeGeojson?.properties?.variant||0)+1; const route=await api.route({lat:activity.locationLat,lng:activity.locationLng,targetDistanceKm:Number(activity.details?.targetDistanceKm||activity.details?.actualDistanceKm||5),paceMinPerKm:Number(activity.details?.paceMinPerKm||6),variant}); const updated={...activity,details:{...activity.details,actualDistanceKm:route.actualDistanceKm,estimatedDurationMinutes:route.estimatedDurationMinutes,routeGeojson:route.route}}; if(!demo) await api.updateActivity(activity.id,updated,true); setActivities((list)=>list.map((item)=>item.id===activity.id?updated:item));setSelected(updated);notify('Wygenerowano nowy wariant trasy.','success');return true;} catch(error){notify(error.message,'error');return false;} };
+  const openActivityModal = (date = calendarContext.currentDate) => setModal({date});
   const visibleActivities = useMemo(()=>activities,[activities]);
   if(screen==='landing') return <><Landing onAuth={openAuth} onDemo={enterDemo}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
   if(screen==='auth') return <><Auth mode={authMode} onMode={setAuthMode} onSubmit={handleAuth} onBack={()=>setScreen('landing')} busy={authBusy} error={authError}/><Toast toast={toast} onClose={()=>setToast(null)}/></>;
-  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={(date)=>setModal({date})}>
-    {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={(date)=>setModal({date})} onSelect={setSelected} search={search} sportFilter={sportFilter}/>} 
+  return <><AppShell {...{user,page,setPage,theme,setTheme,search,setSearch,sportFilter,setSportFilter}} onLogout={logout} onAdd={openActivityModal}>
+    {(page==='dashboard'||page==='calendar')&&<Dashboard user={user} activities={visibleActivities} onAdd={openActivityModal} onSelect={setSelected} search={search} sportFilter={sportFilter} calendarContext={calendarContext}/>} 
     {page==='analytics'&&<Analytics activities={visibleActivities}/>} 
     {page==='settings'&&<Settings user={user} theme={theme} setTheme={setTheme} demo={demo} notify={notify} onUserChange={setUser}/>} 
-  </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} user={user} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
+  </AppShell>{modal&&<ActivityModal initialDate={modal.date} activity={modal.activity} user={user} demo={demo} existingActivities={activities} onClose={()=>setModal(null)} onSaved={saveActivity} notify={notify}/>} {selected&&<ActivityDetails activity={selected} onClose={()=>setSelected(null)} onEdit={(activity)=>{setSelected(null);setModal({activity});}} onDelete={deleteActivity} onRegenerateRoute={regenerateRoute}/>}<Toast toast={toast} onClose={()=>setToast(null)}/></>;
 }

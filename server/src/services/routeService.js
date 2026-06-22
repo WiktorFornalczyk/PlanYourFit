@@ -56,9 +56,9 @@ async function requestRoute(points) {
   return route;
 }
 
-async function createRunningRoute({ lat, lng, targetDistanceKm, paceMinPerKm = 6 }) {
+async function createRunningRoute({ lat, lng, targetDistanceKm, paceMinPerKm = 6, variant = 0 }) {
   const startLat = Number(lat); const startLng = Number(lng); const target = Number(targetDistanceKm);
-  let scale = 1; let best = null; let orientation = 35;
+  let scale = 1; let best = null; let orientation = 35 + (Math.abs(Number(variant)) % 8) * 43;
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const points = loopWaypoints(startLat, startLng, target, scale, orientation);
     try {
@@ -80,7 +80,7 @@ async function createRunningRoute({ lat, lng, targetDistanceKm, paceMinPerKm = 6
   geometry.coordinates[geometry.coordinates.length - 1] = [startLng, startLat];
   const actualDistanceKm = Number(best.distanceKm.toFixed(2));
   return {
-    route: { type: 'Feature', properties: { provider: 'OSRM', profile: 'foot', closedLoop: true }, geometry },
+    route: { type: 'Feature', properties: { provider: 'OSRM', profile: 'foot', closedLoop: true, variant: Number(variant) }, geometry },
     actualDistanceKm,
     targetDistanceKm: target,
     distanceDifferenceKm: Number((actualDistanceKm - target).toFixed(2)),

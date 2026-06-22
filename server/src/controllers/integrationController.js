@@ -1,4 +1,4 @@
-const { getWeather } = require('../services/weatherService');
+const { getWeather, getLocalTime } = require('../services/weatherService');
 const { searchPlaces } = require('../services/placesService');
 const { createRunningRoute } = require('../services/routeService');
 const { evaluateRecommendation } = require('../services/recommendationEngine');
@@ -26,6 +26,14 @@ async function weather(req, res) {
   res.json({ weather: await getWeather({ lat, lng, date, from, to }) });
 }
 
+async function localTime(req, res) {
+  const lat = Number(req.query.lat); const lng = Number(req.query.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return res.status(400).json({ message:'Podaj poprawną lokalizację.' });
+  }
+  res.json(await getLocalTime({ lat, lng }));
+}
+
 async function places(req, res) {
   const { type, lat, lng } = req.query; const radiusKm = Number(req.query.radiusKm || 10);
   if (!['hall', 'pool'].includes(type) || !lat || !lng || radiusKm < 1 || radiusKm > 50) {
@@ -35,13 +43,13 @@ async function places(req, res) {
 }
 
 async function runningRoute(req, res) {
-  const { lat, lng, targetDistanceKm, paceMinPerKm } = req.body;
+  const { lat, lng, targetDistanceKm, paceMinPerKm, variant } = req.body;
   if (!lat || !lng || !targetDistanceKm || targetDistanceKm <= 0 || targetDistanceKm > 100) {
     return res.status(400).json({ message: 'Podaj poprawną lokalizację i dystans do 100 km.' });
   }
-  res.json(await createRunningRoute({ lat, lng, targetDistanceKm: Number(targetDistanceKm), paceMinPerKm: Number(paceMinPerKm || 6) }));
+  res.json(await createRunningRoute({ lat, lng, targetDistanceKm: Number(targetDistanceKm), paceMinPerKm: Number(paceMinPerKm || 6), variant: Number(variant || 0) }));
 }
 
 function recommendation(req, res) { res.json({ recommendation: evaluateRecommendation(req.body) }); }
 
-module.exports = { reverseLocation, searchLocation, weather, places, runningRoute, recommendation };
+module.exports = { reverseLocation, searchLocation, localTime, weather, places, runningRoute, recommendation };

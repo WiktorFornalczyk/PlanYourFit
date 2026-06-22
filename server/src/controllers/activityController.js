@@ -1,14 +1,21 @@
 const pool = require('../database/pool');
 
 const SELECT_ACTIVITY = `SELECT a.*, bd.court_type, bd.selected_place_id AS basketball_place_id,
+ bd.weather_summary_json AS basketball_weather_json, bd.recommendation_status AS basketball_recommendation_status, bd.recommendation_reason AS basketball_recommendation_reason,
  rd.target_distance_km, rd.actual_distance_km, rd.pace_min_per_km, rd.estimated_duration_minutes, rd.route_geojson,
- sd.selected_place_id AS swimming_place_id
+ rd.weather_summary_json AS running_weather_json, rd.recommendation_status AS running_recommendation_status,
+ sd.selected_place_id AS swimming_place_id, sd.weather_summary_json AS swimming_weather_json,
+ sd.recommendation_status AS swimming_recommendation_status, sd.recommendation_reason AS swimming_recommendation_reason
  FROM activities a
  LEFT JOIN basketball_details bd ON bd.activity_id = a.id
  LEFT JOIN running_details rd ON rd.activity_id = a.id
  LEFT JOIN swimming_details sd ON sd.activity_id = a.id`;
 
 function mapActivity(row) {
+  const parseJson = (value) => typeof value === 'string' ? JSON.parse(value) : value;
+  const weather = parseJson(row.running_weather_json || row.basketball_weather_json || row.swimming_weather_json);
+  const recommendationStatus = row.running_recommendation_status || row.basketball_recommendation_status || row.swimming_recommendation_status;
+  const recommendationReason = row.basketball_recommendation_reason || row.swimming_recommendation_reason;
   return {
     id: row.id, activityType: row.activity_type, title: row.title,
     activityDate: row.activity_date instanceof Date ? row.activity_date.toISOString().slice(0, 10) : row.activity_date,
@@ -20,6 +27,8 @@ function mapActivity(row) {
       targetDistanceKm: row.target_distance_km, actualDistanceKm: row.actual_distance_km,
       paceMinPerKm: row.pace_min_per_km, estimatedDurationMinutes: row.estimated_duration_minutes,
       routeGeojson: typeof row.route_geojson === 'string' ? JSON.parse(row.route_geojson) : row.route_geojson,
+      weather,
+      recommendation: recommendationStatus ? { status: recommendationStatus, message: recommendationReason || 'Ocena warunków pogodowych dla tej aktywności.' } : null,
     },
   };
 }
@@ -63,7 +72,9 @@ async function insertDetails(connection, activityId, data) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [activityId, d.targetDistanceKm, d.actualDistanceKm || null, d.paceMinPerKm || null, d.estimatedDurationMinutes || null, JSON.stringify(d.routeGeojson || null), JSON.stringify(d.weather || null), d.recommendation?.status || 'unknown']);
   }
   if (data.activityType === 'swimming') {
-    await connection.execute('INSERT INTO swimming_details (activity_id, selected_place_id) VALUES (?, ?)', [activityId, d.selectedPlaceId || null]);
+    await connection.execute(`INSERT INTO swimming_details
+      (activity_id, selected_place_id, weather_summary_json, recommendation_status, recommendation_reason)
+      VALUES (?, ?, ?, ?, ?)`, [activityId, d.selectedPlaceId || null, JSON.stringify(d.weather || null), d.recommendation?.status || 'unknown', d.recommendation?.message || null]);
   }
 }
 

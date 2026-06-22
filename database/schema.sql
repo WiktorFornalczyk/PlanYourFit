@@ -74,6 +74,9 @@ CREATE TABLE IF NOT EXISTS swimming_details (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   activity_id BIGINT UNSIGNED NOT NULL,
   selected_place_id VARCHAR(190) NULL,
+  weather_summary_json JSON NULL,
+  recommendation_status ENUM('good', 'warning', 'bad', 'unknown') NOT NULL DEFAULT 'unknown',
+  recommendation_reason TEXT NULL,
   UNIQUE KEY uq_swimming_activity (activity_id),
   CONSTRAINT fk_swimming_activity FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

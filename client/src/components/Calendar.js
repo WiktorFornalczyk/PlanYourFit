@@ -3,21 +3,19 @@ import Icon from './Icon';
 import { SPORTS } from '../data';
 
 const WEEKDAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'];
-const sameDay = (a, b) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
 const toIsoLocal = (date) => {
   const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
+const sameDay = (a, b) => toIsoLocal(a) === toIsoLocal(b);
 
-function MonthView({ date, activities, onSelect, onDayClick }) {
+function MonthView({ date, today, activities, onSelect, onDayClick }) {
   const days = useMemo(() => {
     const first = new Date(date.getFullYear(), date.getMonth(), 1);
     const offset = (first.getDay() + 6) % 7;
     const start = new Date(first); start.setDate(first.getDate() - offset);
     return Array.from({ length: 42 }, (_, i) => { const item = new Date(start); item.setDate(start.getDate() + i); return item; });
   }, [date]);
-  const today = new Date();
-
   return <div className="month-grid">
     {WEEKDAYS.map((day) => <div className="weekday" key={day}>{day}</div>)}
     {days.map((day) => {
@@ -35,14 +33,14 @@ function MonthView({ date, activities, onSelect, onDayClick }) {
   </div>;
 }
 
-function WeekView({ date, activities, onSelect, onDayClick, singleDay = false }) {
+function WeekView({ date, today, activities, onSelect, onDayClick, singleDay = false }) {
   const start = new Date(date);
   if (!singleDay) start.setDate(date.getDate() - ((date.getDay() + 6) % 7));
   const days = Array.from({ length: singleDay ? 1 : 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
   const hours = Array.from({ length: 15 }, (_, i) => i + 6);
   return <div className={`schedule ${singleDay ? 'single-day' : ''}`}>
     <div className="schedule-head"><div/><div className="schedule-days" style={{ '--days': days.length }}>
-      {days.map((day, i) => <button key={toIsoLocal(day)} className={sameDay(day, new Date()) ? 'active' : ''} onClick={() => onDayClick(toIsoLocal(day))}>
+      {days.map((day, i) => <button key={toIsoLocal(day)} className={sameDay(day, today) ? 'active' : ''} onClick={() => onDayClick(toIsoLocal(day))}>
         <span>{WEEKDAYS[(day.getDay() + 6) % 7]}</span><strong>{day.getDate()}</strong>
       </button>)}
     </div></div>
@@ -61,7 +59,7 @@ function WeekView({ date, activities, onSelect, onDayClick, singleDay = false })
   </div>;
 }
 
-export default function Calendar({ date, setDate, view, setView, activities, onSelect, onDayClick }) {
+export default function Calendar({ date, today, setDate, view, setView, activities, onSelect, onDayClick }) {
   const move = (direction) => {
     const next = new Date(date);
     if (view === 'month') next.setMonth(date.getMonth() + direction);
@@ -73,9 +71,9 @@ export default function Calendar({ date, setDate, view, setView, activities, onS
     : new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
   return <section className="card calendar-card">
     <div className="calendar-toolbar">
-      <div className="calendar-title"><button className="icon-button" onClick={() => move(-1)}><Icon name="chevronLeft"/></button><h2>{title}</h2><button className="icon-button" onClick={() => move(1)}><Icon name="chevronRight"/></button><button className="today-button" onClick={() => setDate(new Date())}>Dziś</button></div>
+      <div className="calendar-title"><button className="icon-button" onClick={() => move(-1)}><Icon name="chevronLeft"/></button><h2>{title}</h2><button className="icon-button" onClick={() => move(1)}><Icon name="chevronRight"/></button><button className="today-button" onClick={() => setDate(new Date(today))}>Dziś</button></div>
       <div className="segmented">{[['month','Miesiąc'], ['week','Tydzień'], ['day','Dzień']].map(([key, label]) => <button className={view === key ? 'active' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div>
     </div>
-    {view === 'month' ? <MonthView {...{ date, activities, onSelect, onDayClick }}/> : <WeekView {...{ date, activities, onSelect, onDayClick }} singleDay={view === 'day'}/>} 
+    {view === 'month' ? <MonthView {...{ date, today, activities, onSelect, onDayClick }}/> : <WeekView {...{ date, today, activities, onSelect, onDayClick }} singleDay={view === 'day'}/>} 
   </section>;
 }

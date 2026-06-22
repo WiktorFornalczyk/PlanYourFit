@@ -12,6 +12,14 @@ const emptyForm = (date, user = {}) => ({
 });
 
 const titles = { running: 'Poranny bieg', basketball: 'Koszykówka', swimming: 'Trening pływacki' };
+const weatherDescription = (weather) => {
+  if (weather?.thunderstorm) return 'Burza';
+  const code = Number(weather?.weatherCode);
+  if ([71,73,75,77,85,86].includes(code)) return 'Śnieg';
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'Opady';
+  if ([1,2,3,45,48].includes(code)) return 'Pochmurno';
+  return 'Bezchmurnie';
+};
 
 export default function ActivityModal({ initialDate, activity, user, demo, existingActivities, onClose, onSaved, notify }) {
   const [form, setForm] = useState(() => activity ? {
@@ -24,11 +32,36 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
   const [places, setPlaces] = useState([]);
   const [placesBusy, setPlacesBusy] = useState(false);
   const [showPlaces, setShowPlaces] = useState(false);
+  const [weatherPreview, setWeatherPreview] = useState(activity?.details?.weather || null);
+  const [weatherBusy, setWeatherBusy] = useState(false);
+  const [weatherError, setWeatherError] = useState('');
 
   useEffect(() => {
     const handleEscape = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handleEscape); return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
+
+  useEffect(() => {
+    const valid = form.activityDate && form.startTime && form.endTime > form.startTime
+      && form.locationAddress.trim().length >= 2 && /^\d{2}-\d{3}$/.test(form.postalCode.trim());
+    if (!valid) { setWeatherPreview(null); setWeatherError(''); setWeatherBusy(false); return undefined; }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setWeatherBusy(true); setWeatherError('');
+      try {
+        let lat = form.locationLat; let lng = form.locationLng;
+        if (lat == null || lng == null) {
+          const geocoded = await api.geocode({ address:form.locationAddress, postalCode:form.postalCode });
+          if (!cancelled) setForm((current) => ({ ...current, locationLat:geocoded.location.lat, locationLng:geocoded.location.lng }));
+          return;
+        }
+        const result = demo ? { weather:demoWeather } : await api.weather({ lat, lng, date:form.activityDate, from:form.startTime, to:form.endTime });
+        if (!cancelled) setWeatherPreview(result.weather);
+      } catch (error) { if (!cancelled) { setWeatherPreview(null); setWeatherError(error.message); } }
+      finally { if (!cancelled) setWeatherBusy(false); }
+    }, 650);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [demo, form.activityDate, form.startTime, form.endTime, form.locationAddress, form.postalCode, form.locationLat, form.locationLng]);
 
   const set = (name, value) => setForm((current) => ({
     ...current,
@@ -102,7 +135,7 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
         const route = await api.route({ lat: location.locationLat, lng: location.locationLng, targetDistanceKm: payload.details.targetDistanceKm, paceMinPerKm: payload.details.paceMinPerKm });
         payload.details = { ...payload.details, actualDistanceKm: route.actualDistanceKm, estimatedDurationMinutes: route.estimatedDurationMinutes, routeGeojson: route.route };
       }
-      const weather = demo ? demoWeather : (await api.weather({ lat: location.locationLat, lng: location.locationLng, date: location.activityDate, from: location.startTime, to: location.endTime })).weather;
+      const weather = weatherPreview || (demo ? demoWeather : (await api.weather({ lat: location.locationLat, lng: location.locationLng, date: location.activityDate, from: location.startTime, to: location.endTime })).weather);
       if (weather) {
         const recommendation = demo
           ? { status: 'good', message: 'Dobra pora na aktywność — warunki są korzystne.' }
@@ -145,6 +178,8 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
             {((form.activityType === 'swimming') || (form.activityType === 'basketball' && form.details.courtType === 'indoor')) && <button type="button" className="secondary-button full" onClick={findPlaces}><Icon name="search"/> Znajdź {form.activityType === 'swimming' ? 'baseny' : 'hale'} w pobliżu</button>}
             {showPlaces && <div className="places-list">{placesBusy ? <div className="loading-row"><span className="spinner"/>Szukam najlepszych miejsc…</div> : places.map((place) => <button type="button" key={place.id} className={form.details.selectedPlaceId === place.id ? 'selected' : ''} onClick={() => setForm((current) => ({ ...current, locationAddress: place.address, locationLat: place.lat != null ? Number(place.lat) : current.locationLat, locationLng: place.lng != null ? Number(place.lng) : current.locationLng, details: { ...current.details, selectedPlaceId: place.id } }))}><span className="place-icon"><Icon name={form.activityType === 'swimming' ? 'swim' : 'basketball'}/></span><span><b>{place.name}</b><small>{place.address} · {place.distanceKm} km</small></span><em>{place.rating} ★</em></button>)}</div>}
           </div>
+
+          <section className="weather-preview" aria-live="polite"><div className="weather-preview-heading"><div><span className="section-label">Pogoda podczas aktywności</span><p>{form.activityDate} · {form.startTime}–{form.endTime}</p></div><span>Open-Meteo</span></div>{weatherBusy&&<div className="weather-preview-loading"><span className="spinner"/>Pobieram prognozę dla wybranej lokalizacji…</div>}{weatherError&&!weatherBusy&&<div className="weather-preview-error"><Icon name="cloud"/><span>{weatherError}</span></div>}{weatherPreview&&!weatherBusy&&<div className="weather-preview-grid"><div><Icon name="cloud"/><span><small>Warunki</small><b>{weatherDescription(weatherPreview)}</b></span></div><div><small>Temperatura</small><b>{weatherPreview.temperature ?? '—'}°C</b></div><div><small>Wiatr maks.</small><b>{weatherPreview.windSpeed ?? '—'} km/h</b></div><div><small>Opady łącznie</small><b>{weatherPreview.precipitation ?? 0} mm</b></div></div>}{!weatherPreview&&!weatherBusy&&!weatherError&&<p className="weather-preview-hint">Uzupełnij lokalizację, datę i godziny, aby zobaczyć prognozę.</p>}</section>
 
           <label className="field"><span>Notatka <em>opcjonalnie</em></span><textarea rows="3" value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="Co chcesz zapamiętać?"/></label>
           {!activity && <div className="repeat-row"><label className="switch"><input type="checkbox" checked={form.repeatWeekly} onChange={(e) => set('repeatWeekly', e.target.checked)}/><span/></label><div><b>Powtarzaj co tydzień</b><small>Dodaj serię do kalendarza</small></div>{form.repeatWeekly && <select value={form.repeatCount} onChange={(e) => set('repeatCount', e.target.value)}><option value="4">4 tygodnie</option><option value="8">8 tygodni</option><option value="12">12 tygodni</option></select>}</div>}

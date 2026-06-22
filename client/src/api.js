@@ -27,6 +27,7 @@ export const api = {
   deleteActivity: (id) => request(`/activities/${id}`, { method: 'DELETE' }),
   reverseGeocode: (params) => request(`/geocoding/reverse?${new URLSearchParams(params)}`),
   geocode: (params) => request(`/geocoding/search?${new URLSearchParams(params)}`),
+  localTime: (params) => request(`/timezone?${new URLSearchParams(params)}`),
   weather: (params) => request(`/weather?${new URLSearchParams(params)}`),
   places: (params) => request(`/places?${new URLSearchParams(params)}`),
   route: (body) => request('/routes/running', { method: 'POST', body: JSON.stringify(body) }),
