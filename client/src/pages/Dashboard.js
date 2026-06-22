@@ -26,26 +26,28 @@ function WeeklyChart({ activities }) {
 export default function Dashboard({ user, activities, onAdd, onSelect, search, sportFilter }) {
   const [date, setDate] = useState(new Date()); const [view, setView] = useState('month');
   const filtered = useMemo(() => activities.filter((a) => (!sportFilter || a.activityType === sportFilter) && (!search || `${a.title} ${a.postalCode || ''} ${a.locationAddress} ${a.note}`.toLowerCase().includes(search.toLowerCase()))), [activities, search, sportFilter]);
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); weekStart.setHours(0,0,0,0);
-  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
-  const thisWeek = activities.filter((a) => { const d = new Date(`${a.activityDate}T12:00:00`); return d >= weekStart && d < weekEnd; });
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const thisMonth = activities.filter((a) => { const d = new Date(`${a.activityDate}T12:00:00`); return d >= monthStart && d < nextMonthStart; });
   const previousMonth = activities.filter((a) => { const d = new Date(`${a.activityDate}T12:00:00`); return d >= previousMonthStart && d < monthStart; });
+  const completedThisMonth = thisMonth.filter((a) => new Date(`${a.activityDate}T${a.endTime}:00`) <= now);
   const monthDifference = thisMonth.length - previousMonth.length;
   const monthTrend = monthDifference > 0
     ? { type: 'up', icon: '↗', label: `+${monthDifference} vs poprzedni miesiąc` }
     : monthDifference < 0
       ? { type: 'down', icon: '↘', label: `${monthDifference} vs poprzedni miesiąc` }
       : { type: 'same', icon: '→', label: '0 · bez zmian' };
-  const minutes = thisWeek.reduce((sum, a) => sum + durationMinutes(a), 0);
-  const distance = thisWeek.filter((a) => a.activityType === 'running').reduce((sum, a) => sum + Number(a.details?.actualDistanceKm || a.details?.targetDistanceKm || 0), 0);
+  const minutes = completedThisMonth.reduce((sum, a) => sum + durationMinutes(a), 0);
+  const distance = completedThisMonth.filter((a) => a.activityType === 'running').reduce((sum, a) => sum + Number(a.details?.actualDistanceKm || a.details?.targetDistanceKm || 0), 0);
+  const mostFrequentType = Object.keys(SPORTS).reduce((best, type) => {
+    const count = thisMonth.filter((a) => a.activityType === type).length;
+    return count > best.count ? { type, count } : best;
+  }, { type: null, count: 0 });
   const greeting = new Date().getHours() < 12 ? 'Dzień dobry' : new Date().getHours() < 18 ? 'Miłego popołudnia' : 'Dobry wieczór';
   return <div className="dashboard-content"><header className="page-intro"><div><span className="eyebrow">{new Intl.DateTimeFormat('pl-PL',{weekday:'long',day:'numeric',month:'long'}).format(new Date()).toUpperCase()}</span><h1>{greeting}, {user.name}! <span>👋</span></h1><p>Twój tydzień wygląda dobrze. Każdy ruch się liczy.</p></div><button className="primary-button add-main" onClick={() => onAdd()}><Icon name="plus"/> Dodaj aktywność</button></header>
-    <section className="stats-grid"><StatCard icon="calendar" tone="lime" label="Aktywności w tym miesiącu" value={thisMonth.length} trend={monthTrend}/><StatCard icon="clock" tone="purple" label="Łączny czas" value={Math.floor(minutes/60)} suffix={` h ${minutes%60} min`}/><StatCard icon="route" tone="orange" label="Przebiegnięty dystans" value={distance.toFixed(1)} suffix=" km"/><StatCard icon="spark" tone="blue" label="Najczęstsza aktywność" value={thisWeek.length ? SPORTS[Object.keys(SPORTS).sort((a,b)=>thisWeek.filter(x=>x.activityType===b).length-thisWeek.filter(x=>x.activityType===a).length)[0]].short : '—'}/></section>
+    <section className="stats-grid"><StatCard icon="calendar" tone="lime" label="Aktywności w tym miesiącu" value={thisMonth.length} trend={monthTrend}/><StatCard icon="clock" tone="purple" label="Łączny czas" value={Math.floor(minutes/60)} suffix={` h ${minutes%60} min`}/><StatCard icon="route" tone="orange" label="Przebiegnięty dystans" value={distance.toFixed(1)} suffix=" km"/><StatCard icon="spark" tone="blue" label="Najczęstsza aktywność" value={mostFrequentType.type ? SPORTS[mostFrequentType.type].short : '—'}/></section>
     <Calendar {...{ date, setDate, view, setView }} activities={filtered} onSelect={onSelect} onDayClick={(day) => onAdd(day)}/>
     <div className="dashboard-lower"><Upcoming activities={filtered} onSelect={onSelect}/><WeeklyChart activities={activities}/></div>
   </div>;
