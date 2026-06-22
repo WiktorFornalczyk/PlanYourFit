@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
 :root {
+  color-scheme: light;
   --ink: #17332f;
   --ink-2: #31504b;
   --muted: #748984;
@@ -25,6 +26,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --ink: #eff9f4;
   --ink-2: #c1d3cd;
   --muted: #8fa69f;
@@ -42,6 +44,14 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--canvas); -webkit-font-smoothing: antialiased; }
 button, input, textarea, select { font: inherit; }
+input[type="date"], input[type="time"], input[type="number"], select { color-scheme: inherit; }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.72; }
+input[type="number"]::-webkit-inner-spin-button { cursor:pointer; opacity:.62; }
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator { filter:invert(86%) sepia(8%) saturate(340%) hue-rotate(105deg); }
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button { filter:invert(82%) sepia(8%) saturate(340%) hue-rotate(105deg); }
+select option { color:var(--ink); background:var(--surface); }
 button { color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
@@ -76,6 +86,8 @@ h1, h2, h3, .brand { font-family: 'Manrope', sans-serif; }
 .mini-map .map-label { z-index:500; }
 .mini-map .leaflet-tooltip { color:#17332f; background:#f3facf; border:0; border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.16); font-size:8px; font-weight:800; }
 .mini-map .leaflet-tooltip::before { border-top-color:#f3facf; }
+.route-external-actions { margin-top:10px; display:flex; align-items:center; gap:12px; }
+.route-external-actions small { color:var(--muted); font-size:8px; }
 .trend.down { color:#d06760; }
 .trend.same { color:var(--muted); }
 .primary-button:hover { transform: translateY(-1px); background: var(--green-dark); }
