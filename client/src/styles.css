@@ -72,6 +72,10 @@ h1, h2, h3, .brand { font-family: 'Manrope', sans-serif; }
 .location-fields { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:10px; align-items:end; }
 .osm-attribution { display:inline-block; margin-top:7px; color:var(--muted); font-size:8px; text-decoration:underline; }
 .settings-location-button { margin-top:9px; }
+.route-map-canvas { width:100%; height:100%; z-index:1; font-family:'DM Sans',sans-serif; }
+.mini-map .map-label { z-index:500; }
+.mini-map .leaflet-tooltip { color:#17332f; background:#f3facf; border:0; border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.16); font-size:8px; font-weight:800; }
+.mini-map .leaflet-tooltip::before { border-top-color:#f3facf; }
 .trend.down { color:#d06760; }
 .trend.same { color:var(--muted); }
 .primary-button:hover { transform: translateY(-1px); background: var(--green-dark); }

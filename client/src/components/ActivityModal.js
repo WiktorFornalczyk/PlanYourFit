@@ -98,7 +98,7 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
     try {
       const location = await resolveLocation();
       let payload = { ...location, searchRadiusKm: Number(location.searchRadiusKm), repeatCount: Number(location.repeatCount), details: { ...location.details, targetDistanceKm: Number(location.details.targetDistanceKm || 0), paceMinPerKm: Number(location.details.paceMinPerKm || 0) } };
-      if (location.activityType === 'running' && !demo) {
+      if (location.activityType === 'running') {
         const route = await api.route({ lat: location.locationLat, lng: location.locationLng, targetDistanceKm: payload.details.targetDistanceKm, paceMinPerKm: payload.details.paceMinPerKm });
         payload.details = { ...payload.details, actualDistanceKm: route.actualDistanceKm, estimatedDurationMinutes: route.estimatedDurationMinutes, routeGeojson: route.route };
       }

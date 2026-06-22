@@ -63,13 +63,13 @@ Konto z danych startowych: `demo@planyourfit.pl`, hasło: `Demo1234!`.
 
 ## Integracje
 
-Open-Meteo i geokodowanie Nominatim nie wymagają klucza. Lokalizacja urządzenia pochodzi z Browser Geolocation API, a Nominatim zamienia adresy na współrzędne i współrzędne na adresy. Bez kluczy Google Places i OpenRouteService backend zwraca bezpieczne dane demonstracyjne, więc cały przepływ interfejsu pozostaje testowalny.
+Open-Meteo, geokodowanie Nominatim i piesze trasy OSRM nie wymagają klucza. Lokalizacja urządzenia pochodzi z Browser Geolocation API, Nominatim zamienia adresy na współrzędne i odwrotnie, a OSRM generuje zamknięte pętle biegowe. Bez klucza Google Places backend zwraca bezpieczne dane demonstracyjne dla obiektów sportowych.
 
 Aby włączyć prawdziwe usługi, ustaw w `.env`:
 
 ```env
 GOOGLE_PLACES_API_KEY=...
-OPENROUTESERVICE_API_KEY=...
+OSRM_FOOT_URL=https://routing.openstreetmap.de/routed-foot
 NOMINATIM_USER_AGENT=PlanYourFit/1.0 (contact: your-email@example.com)
 ```
 

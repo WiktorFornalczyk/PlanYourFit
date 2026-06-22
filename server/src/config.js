@@ -14,6 +14,6 @@ module.exports = {
     password: process.env.DB_PASSWORD || '',
   },
   googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY || '',
-  openRouteServiceKey: process.env.OPENROUTESERVICE_API_KEY || '',
+  osrmFootUrl: process.env.OSRM_FOOT_URL || 'https://routing.openstreetmap.de/routed-foot',
   nominatimUserAgent: process.env.NOMINATIM_USER_AGENT || `PlanYourFit/1.0 (${process.env.CLIENT_URL || 'http://localhost:3000'})`,
 };
