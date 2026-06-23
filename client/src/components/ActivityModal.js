@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Icon from './Icon';
 import NumberInput from './NumberInput';
 import { api } from '../api';
-import { demoWeather, SPORTS } from '../data';
+import { SPORTS } from '../data';
 
 const emptyForm = (date, user = {}) => ({
   activityType: 'running', title: 'Poranny bieg', activityDate: date || new Date().toISOString().slice(0, 10),
@@ -56,7 +56,7 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
           if (!cancelled) setForm((current) => ({ ...current, locationLat:geocoded.location.lat, locationLng:geocoded.location.lng }));
           return;
         }
-        const result = demo ? { weather:demoWeather } : await api.weather({ lat, lng, date:form.activityDate, from:form.startTime, to:form.endTime });
+        const result = await api.weather({ lat, lng, date:form.activityDate, from:form.startTime, to:form.endTime });
         if (!cancelled) setWeatherPreview(result.weather);
       } catch (error) { if (!cancelled) { setWeatherPreview(null); setWeatherError(error.message); } }
       finally { if (!cancelled) setWeatherBusy(false); }
@@ -136,11 +136,9 @@ export default function ActivityModal({ initialDate, activity, user, demo, exist
         const route = await api.route({ lat: location.locationLat, lng: location.locationLng, targetDistanceKm: payload.details.targetDistanceKm, paceMinPerKm: payload.details.paceMinPerKm });
         payload.details = { ...payload.details, actualDistanceKm: route.actualDistanceKm, estimatedDurationMinutes: route.estimatedDurationMinutes, routeGeojson: route.route };
       }
-      const weather = weatherPreview || (demo ? demoWeather : (await api.weather({ lat: location.locationLat, lng: location.locationLng, date: location.activityDate, from: location.startTime, to: location.endTime })).weather);
+      const weather = weatherPreview || (await api.weather({ lat: location.locationLat, lng: location.locationLng, date: location.activityDate, from: location.startTime, to: location.endTime })).weather;
       if (weather) {
-        const recommendation = demo
-          ? { status: 'good', message: 'Dobra pora na aktywność — warunki są korzystne.' }
-          : (await api.recommendation({ activityType: location.activityType, courtType: location.details.courtType, selectedPlace: location.details.selectedPlaceId, weather })).recommendation;
+        const recommendation = (await api.recommendation({ activityType: location.activityType, courtType: location.details.courtType, selectedPlace: location.details.selectedPlaceId, weather })).recommendation;
         payload.details = { ...payload.details, weather, recommendation };
       }
       let createdIds = [];

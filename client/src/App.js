@@ -20,8 +20,9 @@ function dateTimeForZone(timeZone) {
 }
 
 const localDateTime = () => dateTimeForZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+const resolveTheme = (value) => value === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : value;
 
-function AppShell({ user, onLogout, children, page, setPage, theme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd, notifications, onNotificationSelect, onActivityStatus, activities, onSearchSelect }) {
+function AppShell({ user, onLogout, children, page, setPage, theme, effectiveTheme, setTheme, search, setSearch, sportFilter, setSportFilter, onAdd, notifications, onNotificationSelect, onActivityStatus, activities, onSearchSelect }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const nav = [['dashboard','home','Pulpit'],['calendar','calendar','Kalendarz'],['analytics','chart','Statystyki'],['settings','settings','Ustawienia']];
   const sidebarNav = nav.filter(([key]) => key !== 'calendar');
@@ -38,9 +39,16 @@ export default function App() {
   const [calendarContext, setCalendarContext] = useState(localDateTime);
 
   const notify = (message, type='success') => { setToast({message,type}); window.clearTimeout(window.__pyfToast); window.__pyfToast=window.setTimeout(()=>setToast(null),4200); };
-  const setTheme = (value) => { const resolved=value==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):value; setThemeState(resolved); localStorage.setItem('pyf-theme',resolved); };
+  const setTheme = (value) => { setThemeState(value); localStorage.setItem('pyf-theme',value); };
 
-  useEffect(()=>{ document.documentElement.dataset.theme=theme; },[theme]);
+  useEffect(()=>{
+    const applyTheme = () => { document.documentElement.dataset.theme=resolveTheme(theme); };
+    applyTheme();
+    if (theme !== 'system') return undefined;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    media.addEventListener?.('change', applyTheme);
+    return () => media.removeEventListener?.('change', applyTheme);
+  },[theme]);
   useEffect(()=>{
     const restore = async () => { try { const result=await api.me(); setUser(result.user); setScreen('app'); setTheme(result.user.theme||theme); const list=await api.activities(); setActivities(list.activities); } catch { /* Brak aktywnej sesji jest normalny. */ } };
     restore();
@@ -72,7 +80,7 @@ export default function App() {
     return () => { cancelled = true; if (interval) window.clearInterval(interval); };
   }, [calendarLocation]);
 
-  const enterDemo = () => { setDemo(true); setUser(demoUser); setActivities(demoActivities); setScreen('app'); setPage('dashboard'); notify('Witaj w wersji demonstracyjnej!', 'success'); };
+  const enterDemo = () => { setDemo(true); setUser({ ...demoUser }); setActivities(demoActivities.map((activity) => ({ ...activity, details: { ...activity.details } }))); setScreen('app'); setPage('dashboard'); notify('Witaj w wersji demonstracyjnej!', 'success'); };
   const openAuth = (mode) => { setAuthMode(mode); setAuthError(''); setScreen('auth'); };
   const handleAuth = async (form) => { setAuthError(''); if (authMode==='register'&&form.password!==form.confirmPassword) return setAuthError('Hasła nie są takie same.'); setAuthBusy(true); try { const result=authMode==='login'?await api.login({email:form.email,password:form.password}):await api.register(form); setUser(result.user); setDemo(false); setScreen('app'); const list=await api.activities(); setActivities(list.activities); notify(authMode==='login'?'Miło Cię znów widzieć!':'Konto jest gotowe. Zaczynamy!', 'success'); } catch(error) { setAuthError(error.message); } finally { setAuthBusy(false); } };
   const logout = async () => { try { if(!demo) await api.logout(); } catch{} setUser(null);setActivities([]);setDemo(false);setScreen('landing');setPage('dashboard'); };

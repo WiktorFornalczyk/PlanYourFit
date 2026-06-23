@@ -9,9 +9,9 @@ const placesSearchLimit = rateLimit({ windowMs:60 * 1000, limit:12, standardHead
 router.get('/geocoding/reverse', asyncHandler(integrations.reverseLocation));
 router.get('/geocoding/search', asyncHandler(integrations.searchLocation));
 router.get('/timezone', asyncHandler(integrations.localTime));
+router.get('/weather', asyncHandler(integrations.weather));
+router.post('/recommendations/evaluate', integrations.recommendation);
 router.post('/routes/running', routeGenerationLimit, asyncHandler(integrations.runningRoute));
 router.get('/places', placesSearchLimit, asyncHandler(integrations.places));
 router.use(requireAuth);
-router.get('/weather', asyncHandler(integrations.weather));
-router.post('/recommendations/evaluate', integrations.recommendation);
 module.exports = router;
